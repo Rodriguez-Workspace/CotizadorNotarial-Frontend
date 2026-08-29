@@ -1,0 +1,16 @@
+<div class="flex items-center rounded-md bg-neutral p-1 shadow-sm w-full">
+  <button 
+    type="button"
+    (click)="selectOption(value1)"
+    [ngClass]="selectedValue === value1 ? 'bg-primary text-white shadow' : 'text-dark hover:bg-gray-200'"
+    class="flex-1 rounded py-2 text-sm font-medium transition-all duration-200">
+    {{ option1 }}
+  </button>
+  <button 
+    type="button"
+    (click)="selectOption(value2)"
+    [ngClass]="selectedValue === value2 ? 'bg-primary text-white shadow' : 'text-dark hover:bg-gray-200'"
+    class="flex-1 rounded py-2 text-sm font-medium transition-all duration-200">
+    {{ option2 }}
+  </button>
+</div>
