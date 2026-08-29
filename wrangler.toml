@@ -4,3 +4,4 @@ compatibility_date = "2024-03-20"
 # Le dice a Cloudflare dónde está la carpeta compilada de Angular
 [assets]
 directory = "./dist/cotizador-notaria/browser"
+not_found_handling = "single-page-app"
