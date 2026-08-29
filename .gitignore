@@ -40,3 +40,18 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Firebase (ya no se usa Firebase Hosting — ahora es Cloudflare Pages)
+.firebase/
+firebase-debug.log
+.firebaserc
+firebase.json
+
+# Graphify output (análisis local, no subir)
+/graphify-out/
+
+# ⚠️ NUNCA subir archivos con claves o credenciales
+*.json.bak
+*service-account*.json
+*credentials*.json
+*-firebase-adminsdk-*.json
