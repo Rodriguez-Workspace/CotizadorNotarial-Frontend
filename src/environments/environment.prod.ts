@@ -13,5 +13,5 @@ export const environment = {
   },
   // URL del Worker desplegado en Cloudflare
   // Reemplazar con la URL real después de: npx wrangler deploy
-  workerUrl: 'https://cotizador-worker.TU_SUBDOMINIO.workers.dev'
+  workerUrl: 'https://cotizador-worker.andres-dev.workers.dev'
 };
