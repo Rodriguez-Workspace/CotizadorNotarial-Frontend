@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Auth, GoogleAuthProvider, signInWithPopup, signOut, user, User } from '@angular/fire/auth';
+import { Auth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, user, User } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
 import { BehaviorSubject, Observable } from 'rxjs';
@@ -31,6 +31,9 @@ export class AuthService {
   constructor(private auth: Auth, private firestore: Firestore, private router: Router) {
     this.user$ = user(this.auth);
     
+    // Check if we just came back from a redirect login
+    this.handleRedirectResult();
+
     // Restaurar estado al recargar si hay usuario
     this.user$.subscribe(async (user) => {
       if (user && user.email) {
@@ -39,6 +42,28 @@ export class AuthService {
         this.notariaContext.next(null);
       }
     });
+  }
+
+  private async handleRedirectResult() {
+    try {
+      const result = await getRedirectResult(this.auth);
+      if (result && result.user) {
+        const email = result.user.email;
+        if (!email) throw new Error('No email found');
+
+        const isAuthorized = await this.loadNotariaContext(email);
+        
+        if (!isAuthorized) {
+          await this.logout();
+          Swal.fire('Acceso Denegado', 'Tu usuario no está autorizado o está inactivo en el sistema.', 'error');
+        } else {
+          this.router.navigate(['/cotizador']);
+        }
+      }
+    } catch (error) {
+      console.error('Error from getRedirectResult', error);
+      Swal.fire('Error', 'Ocurrió un error al intentar iniciar sesión con Google.', 'error');
+    }
   }
 
   get currentContext(): NotariaContext | null {
@@ -79,27 +104,13 @@ export class AuthService {
   }
 
   async loginWithGoogle(): Promise<boolean> {
-    // Solo autenticación con Google — sin scopes de Sheets/Drive
-    // El Worker usa su propia Service Account para escribir en Sheets
     const provider = new GoogleAuthProvider();
     
     try {
-      const result = await signInWithPopup(this.auth, provider);
-      const email = result.user.email;
-      
-      if (!email) throw new Error('No email found');
-
-      const isAuthorized = await this.loadNotariaContext(email);
-      
-      if (!isAuthorized) {
-        await this.logout();
-        Swal.fire('Acceso Denegado', 'Tu usuario no está autorizado o está inactivo en el sistema.', 'error');
-        return false;
-      }
-      
-      this.router.navigate(['/cotizador']);
+      // Usamos redirect en lugar de popup para evitar bloqueos de navegadores o headers COOP
+      await signInWithRedirect(this.auth, provider);
+      // signInWithRedirect recarga la página, así que devolvemos true (o nunca llega aquí)
       return true;
-      
     } catch (error) {
       console.error('Error in login', error);
       Swal.fire('Error', 'Ocurrió un error al intentar iniciar sesión con Google.', 'error');
