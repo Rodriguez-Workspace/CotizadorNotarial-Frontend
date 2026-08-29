@@ -3,5 +3,4 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
-  Content-Security-Policy: default-src 'self' https://*.firebaseapp.com https://*.googleapis.com https://identitytoolkit.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src 'self' https://*.firebaseapp.com https://*.firebase.com; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://cotizador-worker.andres-dev.workers.dev; frame-ancestors 'none';
   Cross-Origin-Opener-Policy: same-origin-allow-popups
