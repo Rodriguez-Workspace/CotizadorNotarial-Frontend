@@ -9,5 +9,5 @@ export const environment = {
     appId: "1:488903124592:web:7f5bdef96cd4926c2ef6b5",
     measurementId: "G-Y2L75GFRK0"
   },
-  workerUrl: 'https://cotizador-worker.REEMPLAZAR_URL.workers.dev'
+  workerUrl: 'https://cotizador-notarial.andres-dev.workers.dev'
 };
