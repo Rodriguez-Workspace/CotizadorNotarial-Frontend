@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom, take } from 'rxjs';
 import { Auth, user } from '@angular/fire/auth';
+import { AuthService } from './auth.service';
 import { environment } from '../../../environments/environment';
 import { CotizacionItem } from './calculator.service';
 import Swal from 'sweetalert2';
@@ -22,6 +23,7 @@ export interface CotizacionSheet {
 export class ApiService {
   private http = inject(HttpClient);
   private auth = inject(Auth);
+  private authService = inject(AuthService);
   private readonly baseUrl = environment.workerUrl;
 
   constructor() {
@@ -34,10 +36,20 @@ export class ApiService {
     if (!currentUser) throw new Error('No hay usuario autenticado');
     
     const token = await currentUser.getIdToken();
-    return new HttpHeaders({
+    let headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     });
+    
+    let googleOAuthToken = sessionStorage.getItem('google_oauth_token');
+    if (!googleOAuthToken) {
+      Swal.fire('Sesión Expirada', 'Por favor, cierra sesión y vuelve a iniciarla para actualizar los permisos de Google Drive.', 'warning');
+      throw new Error('Falta token de Google OAuth');
+    }
+    
+    headers = headers.set('x-google-oauth-token', googleOAuthToken);
+    
+    return headers;
   }
 
   async saveCotizacion(data: CotizacionSheet): Promise<void> {

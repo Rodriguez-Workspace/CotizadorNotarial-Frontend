@@ -80,6 +80,8 @@ export class AuthService {
 
   async loginWithGoogle(): Promise<boolean> {
     const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
     
     try {
       const result = await signInWithPopup(this.auth, provider);
@@ -95,6 +97,11 @@ export class AuthService {
         return false;
       }
       
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        sessionStorage.setItem('google_oauth_token', credential.accessToken);
+      }
+      
       this.router.navigate(['/cotizador']);
       return true;
       
@@ -105,7 +112,26 @@ export class AuthService {
     }
   }
 
+  async renovarSesionGoogle(): Promise<string | null> {
+    const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
+    
+    try {
+      const result = await signInWithPopup(this.auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        sessionStorage.setItem('google_oauth_token', credential.accessToken);
+        return credential.accessToken;
+      }
+    } catch (error) {
+      console.error('Error al renovar sesión de Google', error);
+    }
+    return null;
+  }
+
   async logout() {
+    sessionStorage.removeItem('google_oauth_token');
     this.notariaContext.next(null);
     await signOut(this.auth);
     this.router.navigate(['/login']);
