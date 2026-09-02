@@ -1,6 +1,0 @@
-# Cotizador Notarial IA
-
-Esta aplicación es una calculadora y generador de proformas para notarías.
-Provee cálculos matemáticos para derechos notariales y registrales en Perú.
-
-[Ver Repositorio](https://github.com/)
