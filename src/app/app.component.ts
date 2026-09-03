@@ -70,6 +70,38 @@ export class AppComponent implements OnInit {
           }
           link.href = ctx.perfil.logo_url;
         }
+
+        // 4. Inyección Dinámica del PWA Manifest
+        if (ctx.perfil.nombre_oficial && ctx.perfil.logo_url) {
+          const manifest = {
+            name: ctx.perfil.nombre_oficial,
+            short_name: ctx.perfil.nombre_oficial,
+            theme_color: ctx.perfil.color_marca || '#1e40af',
+            background_color: '#fafafa',
+            display: 'standalone',
+            scope: './',
+            start_url: './',
+            description: `Sistema de cotización para ${ctx.perfil.nombre_oficial}`,
+            icons: [
+              {
+                src: ctx.perfil.logo_url,
+                sizes: "192x192 512x512",
+                type: "image/png",
+                purpose: "any maskable"
+              }
+            ]
+          };
+          const stringManifest = JSON.stringify(manifest);
+          const blob = new Blob([stringManifest], { type: 'application/json' });
+          const manifestURL = URL.createObjectURL(blob);
+          let manifestLink = this.document.querySelector("link[rel='manifest']") as HTMLLinkElement;
+          if (!manifestLink) {
+            manifestLink = this.document.createElement('link');
+            manifestLink.rel = 'manifest';
+            this.document.head.appendChild(manifestLink);
+          }
+          manifestLink.href = manifestURL;
+        }
       } else {
          this.titleService.setTitle('Cotizador Notarial');
       }
