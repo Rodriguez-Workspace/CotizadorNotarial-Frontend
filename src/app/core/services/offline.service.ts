@@ -109,7 +109,7 @@ export class OfflineService {
       await this.apiSvc.saveCotizacion(items);
       Swal.fire({
         toast: true, position: 'top-end', showConfirmButton: false, timer: 2500,
-        icon: 'success', title: '✅ Guardado en historial'
+        icon: 'success', title: '¡Guardado exitosamente en Google Sheets!'
       });
     } catch (e) {
       // Save locally as fallback if the API call fails
