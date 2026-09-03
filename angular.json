@@ -33,7 +33,16 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": []
+            "scripts": [],
+            "allowedCommonJsDependencies": [
+              "sweetalert2",
+              "html2canvas",
+              "jspdf",
+              "canvg",
+              "rgbcolor",
+              "raf",
+              "core-js"
+            ]
           },
           "configurations": {
             "production": {
@@ -67,6 +76,11 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "headers": {
+              "Cross-Origin-Opener-Policy": "unsafe-none"
+            }
+          },
           "configurations": {
             "production": {
               "buildTarget": "cotizador-notarial:build:production"
