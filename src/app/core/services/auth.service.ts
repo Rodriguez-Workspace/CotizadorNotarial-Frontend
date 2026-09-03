@@ -30,6 +30,8 @@ export interface NotariaContext {
   id: string;
   perfil: NotariaPerfil;
   rol: 'admin' | 'abogado';
+  spreadsheetId: string | null;
+  serviceAccountEmail?: string;
 }
 
 @Injectable({
@@ -69,12 +71,22 @@ export class AuthService {
   }
 
   async loginWithGoogle(): Promise<boolean> {
-    // Sin scopes adicionales — la Service Account del Worker maneja Drive/Sheets
     const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
 
     try {
-      await signInWithPopup(this.auth, provider);
-      // El ApiService cargará el contexto de notaría al detectar al usuario
+      // El login dispara user$ que carga tenant en api.service.ts
+      const result = await signInWithPopup(this.auth, provider);
+      
+      // Obtenemos el token de OAuth necesario por si acaso (para Drive)
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const oauthToken = credential?.accessToken;
+      
+      if (oauthToken) {
+        // Lo guardamos temporalmente en sessionStorage solo para la inicialización
+        sessionStorage.setItem('google_oauth_token', oauthToken);
+      }
+      
       this.router.navigate(['/cotizador']);
       return true;
     } catch (error) {
@@ -86,6 +98,7 @@ export class AuthService {
 
   async logout(): Promise<void> {
     this.notariaContext.next(null);
+    sessionStorage.removeItem('google_oauth_token');
     await signOut(this.auth);
     this.router.navigate(['/login']);
   }

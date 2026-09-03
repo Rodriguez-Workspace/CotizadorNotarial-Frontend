@@ -121,14 +121,22 @@ export class ApiService {
 
   async loadTenant(): Promise<NotariaContext | null> {
     try {
-      const res = await this.get<{ notariaId: string; rol: string; perfil: any }>('/api/tenant');
+      const res = await this.get<{ notariaId: string; rol: string; perfil: any; spreadsheetId: string | null; serviceAccountEmail: string }>('/api/tenant');
       const ctx: NotariaContext = {
         id: res.notariaId,
         rol: res.rol as 'admin' | 'abogado',
-        perfil: res.perfil
+        perfil: res.perfil,
+        spreadsheetId: res.spreadsheetId,
+        serviceAccountEmail: res.serviceAccountEmail
       };
       this._tenant = ctx;
       this.authSvc.setNotariaContext(ctx);
+      
+      // Híbrido: Si no tiene hoja de cálculo, inicializarla
+      if (ctx.rol === 'abogado' && !ctx.spreadsheetId) {
+        await this.initializeGoogleSheet(ctx);
+      }
+      
       return ctx;
     } catch (err: any) {
       if (err.status === 403) {
@@ -136,6 +144,66 @@ export class ApiService {
         Swal.fire('Acceso Denegado', 'Tu usuario no está autorizado o está inactivo en el sistema.', 'error');
       }
       return null;
+    }
+  }
+
+  // ─── Spreadsheet Initialization (Hybrid) ───────────────────────────────────
+
+  private async initializeGoogleSheet(ctx: NotariaContext): Promise<void> {
+    const oauthToken = sessionStorage.getItem('google_oauth_token');
+    if (!oauthToken) {
+      console.warn('No hay token OAuth para crear el Excel.');
+      return;
+    }
+
+    try {
+      // 1. Crear el Spreadsheet
+      const title = `Cotizaciones — ${ctx.perfil.nombre_oficial}`;
+      const body = {
+        properties: { title },
+        sheets: [
+          {
+            properties: { title: 'Cotizaciones', sheetId: 0 },
+            data: [{
+              startRow: 0, startColumn: 0,
+              rowData: [{
+                values: ['Fecha', 'Referencia Interna', 'Tipo de Acto', 'Moneda', 'Cantidad Inmuebles', 'Costo Notarial', 'Costo Registral', 'Total a Pagar'].map(v => ({ userEnteredValue: { stringValue: v } }))
+              }]
+            }]
+          }
+        ]
+      };
+
+      const createRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${oauthToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const createData = await createRes.json();
+      const spreadsheetId = createData.spreadsheetId;
+      if (!spreadsheetId) throw new Error('No spreadsheetId created');
+
+      // 2. Compartir con el Service Account del Backend
+      const serviceAccountEmail = ctx.serviceAccountEmail;
+      if (serviceAccountEmail) {
+        await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${oauthToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'user', role: 'writer', emailAddress: serviceAccountEmail })
+        });
+      }
+
+      // 3. Guardar el ID en Backend (Firestore)
+      await this.post('/api/tenant/spreadsheet', { spreadsheetId });
+      
+      // Actualizar el contexto en memoria
+      this._tenant!.spreadsheetId = spreadsheetId;
+      this.authSvc.setNotariaContext(this._tenant!);
+      
+      console.log('Google Sheet initialized and shared successfully:', spreadsheetId);
+    } catch (e) {
+      console.error('Failed to initialize Google Sheet', e);
+      Swal.fire('Atención', 'No se pudo crear la hoja de cálculo automática. Por favor avisa a soporte.', 'warning');
     }
   }
 
