@@ -14,8 +14,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SwitcherComponent } from '../../shared/components/switcher/switcher.component';
-import { ApiService } from '../../core/services/api.service';
-import { SheetsService } from '../../core/services/sheets.service';
+import { ApiService, CotizacionPayload } from '../../core/services/api.service';
+import { OfflineService } from '../../core/services/offline.service';
 import { CalculatorService, TarifarioActo, ResultadoCalculo, CotizacionItem } from '../../core/services/calculator.service';
 import { PdfService } from '../../core/services/pdf.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -50,10 +50,10 @@ export class CotizadorComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private apiSvc: ApiService,
+    private offlineSvc: OfflineService,
     private calcSvc: CalculatorService,
     private pdfSvc: PdfService,
-    private auth: AuthService,
-    private sheetsSvc: SheetsService
+    private auth: AuthService
   ) {
     this.form = this.fb.group({
       actoId: ['', Validators.required],
@@ -270,6 +270,21 @@ export class CotizadorComponent implements OnInit {
     this.pdfSvc.generarPdfMulti(this.carrito, obtenerFechaFormateadaLetras(ahora), conRequisitos, ahora, refGlobal);
   }
 
+  // ─── Helpers para convertir CotizacionItem → CotizacionPayload ────────
+
+  private itemToPayload(item: CotizacionItem): CotizacionPayload {
+    const ahora = new Date();
+    return {
+      fecha:             ahora.toISOString(),
+      referenciaInterna: item.referencia || '',
+      tipoActo:          item.acto.nombre,
+      moneda:            item.moneda,
+      cantidadInmuebles: item.cantidadInmuebles,
+      costoNotarial:     item.costoNotarialFinal,
+      costoRegistral:    item.costoRegistralFinal,
+      totalPagar:        item.totalFinal,
+    };
+  }
 
   guardarHistorialDirecto() {
     if (!this.resultados || !this.actoSeleccionado) return;
@@ -287,7 +302,7 @@ export class CotizadorComponent implements OnInit {
       costoRegistralFinal: Number(this.registralEditCtrl.value) || 0,
       totalFinal: this.totalActualEditado
     };
-    this.sheetsSvc.saveCotizacionMulti([item], referencia);
+    this.offlineSvc.saveCotizaciones([this.itemToPayload(item)]);
   }
 
   getReferenciaGlobalCarrito(): string {
@@ -296,7 +311,7 @@ export class CotizadorComponent implements OnInit {
 
   guardarHistorialCarrito() {
     if (this.carrito.length === 0) return;
-    const refGlobal = this.form.value.referencia || '';
-    this.sheetsSvc.saveCotizacionMulti(this.carrito, refGlobal);
+    const payloads = this.carrito.map(item => this.itemToPayload(item));
+    this.offlineSvc.saveCotizaciones(payloads);
   }
 }

@@ -69,18 +69,11 @@ export class AuthService {
   }
 
   async loginWithGoogle(): Promise<boolean> {
+    // Sin scopes adicionales — la Service Account del Worker maneja Drive/Sheets
     const provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
-    provider.addScope('https://www.googleapis.com/auth/drive.file');
 
     try {
-      const result = await signInWithPopup(this.auth, provider);
-      
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
-        sessionStorage.setItem('google_oauth_token', credential.accessToken);
-      }
-
+      await signInWithPopup(this.auth, provider);
       // El ApiService cargará el contexto de notaría al detectar al usuario
       this.router.navigate(['/cotizador']);
       return true;
@@ -91,26 +84,7 @@ export class AuthService {
     }
   }
 
-  async renovarSesionGoogle(): Promise<string | null> {
-    const provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
-    provider.addScope('https://www.googleapis.com/auth/drive.file');
-    
-    try {
-      const result = await signInWithPopup(this.auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
-        sessionStorage.setItem('google_oauth_token', credential.accessToken);
-        return credential.accessToken;
-      }
-    } catch (error) {
-      console.error('Error al renovar sesión de Google', error);
-    }
-    return null;
-  }
-
   async logout(): Promise<void> {
-    sessionStorage.removeItem('google_oauth_token');
     this.notariaContext.next(null);
     await signOut(this.auth);
     this.router.navigate(['/login']);

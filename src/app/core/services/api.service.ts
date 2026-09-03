@@ -33,6 +33,21 @@ export interface VariablesGlobales {
   fecha_sunat: string;
 }
 
+export interface CotizacionPayload {
+  fecha: string;
+  referenciaInterna: string;
+  tipoActo: string;
+  moneda: string;
+  cantidadInmuebles: number;
+  costoNotarial: number;
+  costoRegistral: number;
+  totalPagar: number;
+}
+
+export interface HistorialResult {
+  data: CotizacionPayload[];
+  hasMore: boolean;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -142,6 +157,17 @@ export class ApiService {
     return this._variables;
   }
 
+  // ─── Cotizacion ──────────────────────────────────────────────────────────
+
+  async saveCotizacion(items: CotizacionPayload[]): Promise<void> {
+    await this.post('/api/cotizacion', { items });
+  }
+
+  // ─── Historial ───────────────────────────────────────────────────────────
+
+  async getHistorial(limit = 100, offset = 0): Promise<HistorialResult> {
+    return this.get<HistorialResult>(`/api/historial?limit=${limit}&offset=${offset}`);
+  }
 
   // ─── Cache invalidation ──────────────────────────────────────────────────
 

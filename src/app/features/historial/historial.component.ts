@@ -11,8 +11,7 @@
 import { Component, OnInit } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../core/services/api.service';
-import { SheetsService, CotizacionSheet } from '../../core/services/sheets.service';
+import { ApiService, CotizacionPayload } from '../../core/services/api.service';
 import { PdfService } from '../../core/services/pdf.service';
 import { TarifarioActo, CotizacionItem } from '../../core/services/calculator.service';
 import { obtenerFechaFormateadaLetras } from '../../core/utils/date.utils';
@@ -25,8 +24,8 @@ import { obtenerFechaFormateadaLetras } from '../../core/utils/date.utils';
   templateUrl: './historial.component.html',
 })
 export class HistorialComponent implements OnInit {
-  registros: CotizacionSheet[] = [];
-  registrosFiltrados: CotizacionSheet[] = [];
+  registros: CotizacionPayload[] = [];
+  registrosFiltrados: CotizacionPayload[] = [];
   actos: TarifarioActo[] = [];
   searchTerm: string = '';
   paginaActual: number = 1;
@@ -38,8 +37,7 @@ export class HistorialComponent implements OnInit {
   cargandoMas: boolean = false;
 
   constructor(
-    private apiSvc: ApiService,
-    private sheetsSvc: SheetsService,
+    private apiSvc: ApiService, 
     private pdfSvc: PdfService,
     private datePipe: DatePipe
   ) {}
@@ -52,7 +50,7 @@ export class HistorialComponent implements OnInit {
     try {
       const [actos, res] = await Promise.all([
         this.apiSvc.getTarifarioActos(),
-        this.sheetsSvc.getHistorial(this.limitePorBloque, this.offsetActual)
+        this.apiSvc.getHistorial(this.limitePorBloque, this.offsetActual)
       ]);
       this.actos = actos;
       this.registros = [...res.data].reverse(); // Mostrar los más recientes primero
@@ -94,7 +92,7 @@ export class HistorialComponent implements OnInit {
        this.cargandoMas = true;
        this.offsetActual += this.limitePorBloque;
        try {
-         const res = await this.sheetsSvc.getHistorial(this.limitePorBloque, this.offsetActual);
+         const res = await this.apiSvc.getHistorial(this.limitePorBloque, this.offsetActual);
          this.registros = [...this.registros, ...res.data.reverse()];
          this.hayMasEnNube = res.hasMore;
          this.aplicarFiltro(false);
@@ -112,7 +110,7 @@ export class HistorialComponent implements OnInit {
     }
   }
 
-  regenerarPdf(registro: CotizacionSheet, conRequisitos: boolean) {
+  regenerarPdf(registro: CotizacionPayload, conRequisitos: boolean) {
     const nombresActos = registro.tipoActo.split(' + ');
     const items: CotizacionItem[] = [];
 
