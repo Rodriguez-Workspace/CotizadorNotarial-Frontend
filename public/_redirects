@@ -1,0 +1,9 @@
+/*
+  _redirects — Cloudflare Pages SPA routing
+
+  Redirige todas las rutas al index.html para que Angular Router
+  maneje la navegación del lado del cliente.
+
+  Sin este archivo, un F5 en /cotizador devolvería 404 en CF Pages.
+*/
+/*    /index.html    200
