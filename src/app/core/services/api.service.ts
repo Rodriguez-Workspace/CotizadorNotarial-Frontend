@@ -97,8 +97,7 @@ export class ApiService {
       );
     } catch (err: any) {
       if (err.status === 401 || err.status === 403) {
-        console.error('API Error (401/403):', err);
-        // await this.authSvc.logout();
+        await this.authSvc.logout();
       }
       throw err;
     }
@@ -112,8 +111,7 @@ export class ApiService {
       );
     } catch (err: any) {
       if (err.status === 401 || err.status === 403) {
-        console.error('API Error (401/403):', err);
-        // await this.authSvc.logout();
+        await this.authSvc.logout();
       }
       throw err;
     }
@@ -134,8 +132,7 @@ export class ApiService {
       return ctx;
     } catch (err: any) {
       if (err.status === 403) {
-        console.error('API Error /tenant (403):', err);
-        // await this.authSvc.logout();
+        await this.authSvc.logout();
         Swal.fire('Acceso Denegado', 'Tu usuario no está autorizado o está inactivo en el sistema.', 'error');
       }
       return null;
