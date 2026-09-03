@@ -44,6 +44,9 @@ export class CotizadorComponent implements OnInit {
   notarialEditCtrl = new FormControl<number | null>(null);
   registralEditCtrl = new FormControl<number | null>(null);
 
+  // fechaActual se captura al montar el componente para mostrarla en la UI,
+  // pero los PDFs y guardados usan new Date() en el instante del clic.
+
   constructor(
     private fb: FormBuilder,
     private apiSvc: ApiService,
@@ -234,7 +237,8 @@ export class CotizadorComponent implements OnInit {
 
   generarPdfDirecto(conRequisitos: boolean) {
     if (!this.resultados || !this.actoSeleccionado) return;
-    
+    // Fix: capturar fecha/hora en el instante del clic, no al cargar la página
+    const ahora = new Date();
     const item: CotizacionItem = {
       id: Date.now().toString(),
       acto: this.actoSeleccionado,
@@ -251,17 +255,19 @@ export class CotizadorComponent implements OnInit {
 
     this.pdfSvc.generarPdfMulti(
       [item],
-      this.fechaFormateadaLetras,
+      obtenerFechaFormateadaLetras(ahora),
       conRequisitos,
-      this.fechaActual,
+      ahora,
       this.form.value.referencia || ''
     );
   }
 
   generarPdfCarrito(conRequisitos: boolean) {
     if (this.carrito.length === 0) return;
+    // Fix: capturar fecha/hora en el instante del clic
+    const ahora = new Date();
     const refGlobal = this.form.value.referencia || '';
-    this.pdfSvc.generarPdfMulti(this.carrito, this.fechaFormateadaLetras, conRequisitos, this.fechaActual, refGlobal);
+    this.pdfSvc.generarPdfMulti(this.carrito, obtenerFechaFormateadaLetras(ahora), conRequisitos, ahora, refGlobal);
   }
 
   // ─── Helpers para convertir CotizacionItem → CotizacionPayload ────────
@@ -282,6 +288,7 @@ export class CotizadorComponent implements OnInit {
 
   guardarHistorialDirecto() {
     if (!this.resultados || !this.actoSeleccionado) return;
+    const referencia = this.form.value.referencia || ''; // Fix: asegurar que la referencia viaje en guardado directo
     const item: CotizacionItem = {
       id: Date.now().toString(),
       acto: this.actoSeleccionado,
@@ -290,7 +297,7 @@ export class CotizadorComponent implements OnInit {
       conoceValores: this.form.value.conoceValor,
       importeAgrupado: this.form.value.importeTotal,
       importesIndividuales: this.form.value.valoresIndividuales,
-      referencia: this.form.value.referencia,
+      referencia,
       costoNotarialFinal: Number(this.notarialEditCtrl.value) || 0,
       costoRegistralFinal: Number(this.registralEditCtrl.value) || 0,
       totalFinal: this.totalActualEditado

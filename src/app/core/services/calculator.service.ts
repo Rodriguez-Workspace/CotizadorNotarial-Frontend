@@ -101,13 +101,17 @@ export class CalculatorService {
 
       costoNotarialRaw = this.obtenerCostoNotarial(importeDolaresTotal, acto.rangos);
     } else {
+      // MODO DETALLADO
+      // Registral: se calcula individualmente por inmueble (norma)
+      // Notarial:  se suma todo primero y se aplica la tabla UNA SOLA VEZ
+      let sumaTotalDolares = 0;
       for (const imp of importesIndividuales) {
         const impSol = moneda === 'SOLES' ? imp : imp * tc;
         const impDol = moneda === 'DOLARES' ? imp : imp / tc;
-
         costoRegistral += this.calcularCostoRegistralIndividual(impSol, acto.tasa_registral_por_mil, acto.costo_tramite, uit);
-        costoNotarialRaw += this.obtenerCostoNotarial(impDol, acto.rangos);
+        sumaTotalDolares += impDol;
       }
+      costoNotarialRaw = this.obtenerCostoNotarial(sumaTotalDolares, acto.rangos);
     }
 
     const costoNotarialFinal = Number(costoNotarialRaw.toFixed(2));
