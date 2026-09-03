@@ -1,15 +1,3 @@
 /*
-  Cloudflare Pages Custom Headers
-  
-  Cross-Origin-Opener-Policy: same-origin-allow-popups
-  ─────────────────────────────────────────────────────
-  Required for Firebase Auth signInWithPopup to work correctly.
-  Without this header, Cloudflare Pages sends COOP: same-origin by default,
-  which blocks the popup's window.closed check that Firebase Auth uses to
-  detect when the Google sign-in popup closes.
-  
-  Ref: https://firebase.google.com/docs/auth/web/google-signin#before_you_begin
-*/
-/*
   Cross-Origin-Opener-Policy: same-origin-allow-popups
   Cross-Origin-Embedder-Policy: unsafe-none
