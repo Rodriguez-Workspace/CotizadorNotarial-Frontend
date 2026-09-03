@@ -96,12 +96,7 @@ export class OfflineService {
   async saveCotizaciones(items: CotizacionPayload[]): Promise<void> {
     if (!navigator.onLine) {
       this.saveToIndexedDB(items);
-      Swal.fire({
-        toast: true, position: 'top-end', showConfirmButton: false, timer: 3500,
-        icon: 'warning',
-        title: '📴 Sin conexión',
-        text: 'La cotización se guardará cuando recuperes internet.'
-      });
+      Swal.fire('Guardado Local', 'Se ha respaldado localmente y se intentará subir luego.', 'info');
       return;
     }
 
@@ -114,11 +109,7 @@ export class OfflineService {
     } catch (e) {
       // Save locally as fallback if the API call fails
       this.saveToIndexedDB(items);
-      Swal.fire({
-        toast: true, position: 'top-end', showConfirmButton: false, timer: 4000,
-        icon: 'warning', title: 'Error al guardar',
-        text: 'Se guardó localmente. Se sincronizará cuando haya conexión.'
-      });
+      Swal.fire('Guardado Local', 'Se ha respaldado localmente y se intentará subir luego.', 'info');
     }
   }
 
@@ -145,7 +136,7 @@ export class OfflineService {
       Swal.fire({
         toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
         icon: 'success',
-        title: '🔄 Sincronizado',
+        title: 'Sincronizado',
         text: `${pendingGroups.length} cotización(es) offline guardada(s).`
       });
     }
