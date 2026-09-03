@@ -75,6 +75,7 @@ export class AppComponent implements OnInit {
       }
     });
   }
+  
 
   logout() {
     this.auth.logout();
