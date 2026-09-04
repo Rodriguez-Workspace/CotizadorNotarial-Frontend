@@ -45,6 +45,8 @@ export class CotizadorComponent implements OnInit {
   notarialEditCtrl = new FormControl<number | null>(null);
   registralEditCtrl = new FormControl<number | null>(null);
 
+  isSaving: boolean = false;
+
   // fechaActual se captura al montar el componente para mostrarla en la UI,
   // pero los PDFs y guardados usan new Date() en el instante del clic.
 
@@ -302,55 +304,65 @@ export class CotizadorComponent implements OnInit {
     };
   }
 
-  guardarHistorialDirecto() {
-    if (!this.resultados || !this.actoSeleccionado) return;
-    const referencia = this.form.value.referencia || ''; // Fix: asegurar que la referencia viaje en guardado directo
-    const item: CotizacionItem = {
-      id: Date.now().toString(),
-      acto: this.actoSeleccionado,
-      moneda: this.form.value.moneda,
-      cantidadInmuebles: this.form.value.cantidadInmuebles,
-      conoceValores: this.form.value.conoceValor,
-      importeAgrupado: this.form.value.importeTotal,
-      importesIndividuales: this.form.value.valoresIndividuales,
-      referencia,
-      costoNotarialFinal: Number(this.notarialEditCtrl.value) || 0,
-      costoRegistralFinal: Number(this.registralEditCtrl.value) || 0,
-      totalFinal: this.totalActualEditado
-    };
-    this.offlineSvc.saveCotizaciones([this.itemToPayload(item)]);
+  async guardarHistorialDirecto() {
+    if (!this.resultados || !this.actoSeleccionado || this.isSaving) return;
+    this.isSaving = true;
+    try {
+      const referencia = this.form.value.referencia || ''; // Fix: asegurar que la referencia viaje en guardado directo
+      const item: CotizacionItem = {
+        id: Date.now().toString(),
+        acto: this.actoSeleccionado,
+        moneda: this.form.value.moneda,
+        cantidadInmuebles: this.form.value.cantidadInmuebles,
+        conoceValores: this.form.value.conoceValor,
+        importeAgrupado: this.form.value.importeTotal,
+        importesIndividuales: this.form.value.valoresIndividuales,
+        referencia,
+        costoNotarialFinal: Number(this.notarialEditCtrl.value) || 0,
+        costoRegistralFinal: Number(this.registralEditCtrl.value) || 0,
+        totalFinal: this.totalActualEditado
+      };
+      await this.offlineSvc.saveCotizaciones([this.itemToPayload(item)]);
+    } finally {
+      this.isSaving = false;
+    }
   }
 
   getReferenciaGlobalCarrito(): string {
     return this.referenciaGlobalCarrito;
   }
 
-  guardarHistorialCarrito() {
-    if (this.carrito.length === 0) return;
+  async guardarHistorialCarrito() {
+    if (this.carrito.length === 0 || this.isSaving) return;
+    this.isSaving = true;
 
-    // Consolidar el carrito en un solo objeto payload tal como lo hacía la versión antigua
-    const ahora = new Date();
-    const referenciaGlobal = this.referenciaGlobalCarrito;
-    
-    const tipoActo = this.carrito.map(it => it.acto.nombre).join(' + ');
-    const moneda = this.carrito[0].moneda;
+    try {
+      // Consolidar el carrito en un solo objeto payload tal como lo hacía la versión antigua
+      const ahora = new Date();
+      const referenciaGlobal = this.referenciaGlobalCarrito;
+      
+      const tipoActo = this.carrito.map(it => it.acto.nombre).join(' + ');
+      const moneda = this.carrito[0].moneda;
 
-    const cantidadInmuebles = this.carrito.reduce((sum, it) => sum + it.cantidadInmuebles, 0);
-    const costoNotarial = this.carrito.reduce((sum, it) => sum + it.costoNotarialFinal, 0);
-    const costoRegistral = this.carrito.reduce((sum, it) => sum + it.costoRegistralFinal, 0);
-    const totalPagar = this.carrito.reduce((sum, it) => sum + it.totalFinal, 0);
+      const cantidadInmuebles = this.carrito.reduce((sum, it) => sum + it.cantidadInmuebles, 0);
+      const costoNotarial = this.carrito.reduce((sum, it) => sum + it.costoNotarialFinal, 0);
+      const costoRegistral = this.carrito.reduce((sum, it) => sum + it.costoRegistralFinal, 0);
+      const totalPagar = this.carrito.reduce((sum, it) => sum + it.totalFinal, 0);
 
-    const consolidatedPayload: CotizacionPayload = {
-      fecha:             ahora.toISOString(),
-      referenciaInterna: referenciaGlobal,
-      tipoActo:          tipoActo,
-      moneda:            moneda,
-      cantidadInmuebles: cantidadInmuebles,
-      costoNotarial:     costoNotarial,
-      costoRegistral:    costoRegistral,
-      totalPagar:        totalPagar,
-    };
+      const consolidatedPayload: CotizacionPayload = {
+        fecha:             ahora.toISOString(),
+        referenciaInterna: referenciaGlobal,
+        tipoActo:          tipoActo,
+        moneda:            moneda,
+        cantidadInmuebles: cantidadInmuebles,
+        costoNotarial:     costoNotarial,
+        costoRegistral:    costoRegistral,
+        totalPagar:        totalPagar,
+      };
 
-    this.offlineSvc.saveCotizaciones([consolidatedPayload]);
+      await this.offlineSvc.saveCotizaciones([consolidatedPayload]);
+    } finally {
+      this.isSaving = false;
+    }
   }
 }
