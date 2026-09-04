@@ -86,7 +86,15 @@ export class CotizadorComponent implements OnInit {
       this.actoSeleccionado = this.actos.find(a => a.id === id) || null;
     });
     
-    this.form.valueChanges.subscribe(() => this.calcular());
+    let lastCalcState = '';
+    this.form.valueChanges.subscribe(val => {
+      const { referencia, ...calcData } = val;
+      const currentState = JSON.stringify(calcData);
+      if (currentState !== lastCalcState) {
+        lastCalcState = currentState;
+        this.calcular();
+      }
+    });
   }
 
   get fechaFormateadaLetras(): string {
