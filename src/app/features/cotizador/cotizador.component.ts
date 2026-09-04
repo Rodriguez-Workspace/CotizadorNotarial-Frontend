@@ -144,6 +144,7 @@ export class CotizadorComponent implements OnInit {
       cantidadInmuebles: 1,
       conoceValor: false,
       importeTotal: null,
+      referencia: ''
     });
     this.updateFormArrays(false, 1);
     this.actoSeleccionado = null;
