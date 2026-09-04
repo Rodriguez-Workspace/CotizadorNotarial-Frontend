@@ -12,7 +12,7 @@
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { FormBuilder, FormGroup, FormArray, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, FormControl, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { SwitcherComponent } from '../../shared/components/switcher/switcher.component';
 import { ApiService, CotizacionPayload } from '../../core/services/api.service';
 import { OfflineService } from '../../core/services/offline.service';
@@ -26,7 +26,7 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-cotizador',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, SwitcherComponent, CurrencyFormatDirective],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, SwitcherComponent, CurrencyFormatDirective],
   providers: [DatePipe],
   templateUrl: './cotizador.component.html',
 })
@@ -41,6 +41,7 @@ export class CotizadorComponent implements OnInit {
   fechaActual: Date = new Date();
   
   carrito: CotizacionItem[] = [];
+  referenciaGlobalCarrito: string = '';
   notarialEditCtrl = new FormControl<number | null>(null);
   registralEditCtrl = new FormControl<number | null>(null);
 
@@ -131,6 +132,11 @@ export class CotizadorComponent implements OnInit {
       totalFinal: this.totalActualEditado
     };
     
+    // Si es el primer elemento y hay una referencia, la heredamos como referencia global del carrito
+    if (this.carrito.length === 0 && this.form.value.referencia) {
+      this.referenciaGlobalCarrito = this.form.value.referencia;
+    }
+
     this.carrito.push(item);
     
     this.form.patchValue({
@@ -161,6 +167,7 @@ export class CotizadorComponent implements OnInit {
 
   limpiarCarrito() {
     this.carrito = [];
+    this.referenciaGlobalCarrito = '';
   }
 
   updateFormArrays(conoceValor: boolean, cantidad: number) {
@@ -306,7 +313,7 @@ export class CotizadorComponent implements OnInit {
   }
 
   getReferenciaGlobalCarrito(): string {
-    return this.form.value.referencia || '';
+    return this.referenciaGlobalCarrito;
   }
 
   guardarHistorialCarrito() {
@@ -314,7 +321,7 @@ export class CotizadorComponent implements OnInit {
 
     // Consolidar el carrito en un solo objeto payload tal como lo hacía la versión antigua
     const ahora = new Date();
-    const referenciaGlobal = this.getReferenciaGlobalCarrito();
+    const referenciaGlobal = this.referenciaGlobalCarrito;
     
     const tipoActo = this.carrito.map(it => it.acto.nombre).join(' + ');
     const moneda = this.carrito[0].moneda;

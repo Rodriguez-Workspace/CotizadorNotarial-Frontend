@@ -169,7 +169,7 @@
         Proforma Múltiple
       </h3>
       <div class="flex items-center gap-3">
-        <span *ngIf="getReferenciaGlobalCarrito()" class="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase">Ref: {{getReferenciaGlobalCarrito()}}</span>
+        <input type="text" [(ngModel)]="referenciaGlobalCarrito" placeholder="Referencia global" class="border border-gray-300 rounded-md px-3 py-1 text-sm w-48 focus:ring-primary focus:border-primary">
         <span class="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">{{carrito.length}} actos</span>
       </div>
     </div>
