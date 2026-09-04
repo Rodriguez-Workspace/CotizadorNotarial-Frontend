@@ -171,8 +171,14 @@
       <div class="flex items-center gap-3">
         <div *ngIf="carrito.length > 0" class="flex items-center bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase focus-within:ring-2 focus-within:ring-white">
           <span>Ref: </span>
-          <input type="text" [(ngModel)]="referenciaGlobalCarrito" placeholder="-" 
-            class="bg-transparent text-white placeholder-white/70 focus:outline-none border-none w-24 sm:w-32 uppercase p-0 ml-1 text-xs font-bold leading-none">
+          <!-- Contenedor Grid Mágico para auto-ajuste -->
+          <div class="grid ml-1 items-center">
+            <!-- Espejo invisible que dicta el ancho exacto -->
+            <span class="col-start-1 row-start-1 invisible whitespace-pre px-0.5">{{referenciaGlobalCarrito || '-'}}</span>
+            <!-- Input real superpuesto -->
+            <input type="text" [(ngModel)]="referenciaGlobalCarrito" placeholder="-" 
+              class="col-start-1 row-start-1 w-full bg-transparent text-white placeholder-white/70 focus:outline-none border-none uppercase p-0 m-0 text-xs font-bold leading-none min-w-[20px]">
+          </div>
         </div>
         <span class="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">{{carrito.length}} actos</span>
       </div>

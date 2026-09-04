@@ -132,9 +132,9 @@ export class CotizadorComponent implements OnInit {
       totalFinal: this.totalActualEditado
     };
     
-    // Si es el primer elemento y hay una referencia, la heredamos como referencia global del carrito
-    if (this.carrito.length === 0 && this.form.value.referencia) {
-      this.referenciaGlobalCarrito = this.form.value.referencia;
+    // Heredar la referencia global de la última cotización agregada (si no está vacía)
+    if (this.form.value.referencia && this.form.value.referencia.trim() !== '') {
+      this.referenciaGlobalCarrito = this.form.value.referencia.trim();
     }
 
     this.carrito.push(item);
