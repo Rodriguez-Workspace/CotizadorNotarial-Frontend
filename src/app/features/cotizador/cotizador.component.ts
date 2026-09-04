@@ -311,7 +311,30 @@ export class CotizadorComponent implements OnInit {
 
   guardarHistorialCarrito() {
     if (this.carrito.length === 0) return;
-    const payloads = this.carrito.map(item => this.itemToPayload(item));
-    this.offlineSvc.saveCotizaciones(payloads);
+
+    // Consolidar el carrito en un solo objeto payload tal como lo hacía la versión antigua
+    const ahora = new Date();
+    const referenciaGlobal = this.getReferenciaGlobalCarrito();
+    
+    const tipoActo = this.carrito.map(it => it.acto.nombre).join(' + ');
+    const moneda = this.carrito[0].moneda;
+
+    const cantidadInmuebles = this.carrito.reduce((sum, it) => sum + it.cantidadInmuebles, 0);
+    const costoNotarial = this.carrito.reduce((sum, it) => sum + it.costoNotarialFinal, 0);
+    const costoRegistral = this.carrito.reduce((sum, it) => sum + it.costoRegistralFinal, 0);
+    const totalPagar = this.carrito.reduce((sum, it) => sum + it.totalFinal, 0);
+
+    const consolidatedPayload: CotizacionPayload = {
+      fecha:             ahora.toISOString(),
+      referenciaInterna: referenciaGlobal,
+      tipoActo:          tipoActo,
+      moneda:            moneda,
+      cantidadInmuebles: cantidadInmuebles,
+      costoNotarial:     costoNotarial,
+      costoRegistral:    costoRegistral,
+      totalPagar:        totalPagar,
+    };
+
+    this.offlineSvc.saveCotizaciones([consolidatedPayload]);
   }
 }
