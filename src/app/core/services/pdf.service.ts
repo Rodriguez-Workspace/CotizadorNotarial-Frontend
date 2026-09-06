@@ -113,7 +113,7 @@ export class PdfService {
       }
 
       doc.setFont("helvetica", "bold");
-      doc.text(fechaString.toUpperCase(), 20, yPos + 15);
+      doc.text(fechaString.toUpperCase() + " (VÁLIDO POR 90 DÍAS)", 20, yPos + 15);
 
       const hh = String(fechaObj.getHours()).padStart(2, '0');
       const min = String(fechaObj.getMinutes()).padStart(2, '0');
