@@ -38,7 +38,7 @@ export interface CotizacionPayload {
   referenciaInterna: string;
   tipoActo: string;
   moneda: string;
-  cantidadInmuebles: number;
+  cantidadBienes: number;
   costoNotarial: number;
   costoRegistral: number;
   totalPagar: number;
@@ -167,7 +167,7 @@ export class ApiService {
             data: [{
               startRow: 0, startColumn: 0,
               rowData: [{
-                values: ['Fecha', 'Referencia Interna', 'Tipo de Acto', 'Moneda', 'Cantidad Inmuebles', 'Costo Notarial', 'Costo Registral', 'Total a Pagar'].map(v => ({ userEnteredValue: { stringValue: v } }))
+                values: ['Fecha', 'Referencia Interna', 'Tipo de Acto', 'Moneda', 'Cantidad Bienes', 'Costo Notarial', 'Costo Registral', 'Total a Pagar'].map(v => ({ userEnteredValue: { stringValue: v } }))
               }]
             }]
           }

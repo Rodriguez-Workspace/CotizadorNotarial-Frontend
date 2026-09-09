@@ -61,7 +61,7 @@ export class CotizadorComponent implements OnInit {
     this.form = this.fb.group({
       actoId: ['', Validators.required],
       moneda: ['DOLARES', Validators.required],
-      cantidadInmuebles: [1, [Validators.required, Validators.min(1), Validators.max(25), Validators.pattern('^[0-9]+$')]],
+      cantidadBienes: [1, [Validators.required, Validators.min(1), Validators.max(25), Validators.pattern('^[0-9]+$')]],
       conoceValor: [false],
       importeTotal: [null, [Validators.required, Validators.min(0.01)]],
       valoresIndividuales: this.fb.array([]),
@@ -77,9 +77,9 @@ export class CotizadorComponent implements OnInit {
     });
     
     this.form.get('conoceValor')?.valueChanges.subscribe(conoce => {
-      this.updateFormArrays(conoce, this.form.get('cantidadInmuebles')?.value);
+      this.updateFormArrays(conoce, this.form.get('cantidadBienes')?.value);
     });
-    this.form.get('cantidadInmuebles')?.valueChanges.subscribe(cant => {
+    this.form.get('cantidadBienes')?.valueChanges.subscribe(cant => {
       if(this.form.get('conoceValor')?.value) {
         this.updateFormArrays(true, cant);
       }
@@ -132,7 +132,7 @@ export class CotizadorComponent implements OnInit {
       id: Date.now().toString(),
       acto: this.actoSeleccionado,
       moneda: this.form.value.moneda,
-      cantidadInmuebles: this.form.value.cantidadInmuebles,
+      cantidadBienes: this.form.value.cantidadBienes,
       conoceValores: this.form.value.conoceValor,
       importeAgrupado: this.form.value.importeTotal,
       importesIndividuales: this.form.value.valoresIndividuales,
@@ -151,7 +151,7 @@ export class CotizadorComponent implements OnInit {
     
     this.form.patchValue({
       actoId: '',
-      cantidadInmuebles: 1,
+      cantidadBienes: 1,
       conoceValor: false,
       importeTotal: null,
       referencia: ''
@@ -237,7 +237,7 @@ export class CotizadorComponent implements OnInit {
       return;
     }
 
-    const { moneda, cantidadInmuebles, conoceValor, importeTotal, valoresIndividuales } = this.form.value;
+    const { moneda, cantidadBienes, conoceValor, importeTotal, valoresIndividuales } = this.form.value;
 
     this.resultados = this.calcSvc.calcular(
       importeTotal,
@@ -245,7 +245,7 @@ export class CotizadorComponent implements OnInit {
       this.tcActual,
       this.uitActual,
       this.actoSeleccionado,
-      cantidadInmuebles,
+      cantidadBienes,
       conoceValor,
       valoresIndividuales
     );
@@ -261,7 +261,7 @@ export class CotizadorComponent implements OnInit {
       id: Date.now().toString(),
       acto: this.actoSeleccionado,
       moneda: this.form.value.moneda,
-      cantidadInmuebles: this.form.value.cantidadInmuebles,
+      cantidadBienes: this.form.value.cantidadBienes,
       conoceValores: this.form.value.conoceValor,
       importeAgrupado: this.form.value.importeTotal,
       importesIndividuales: this.form.value.valoresIndividuales,
@@ -297,7 +297,7 @@ export class CotizadorComponent implements OnInit {
       referenciaInterna: item.referencia || '',
       tipoActo:          item.acto.nombre,
       moneda:            item.moneda,
-      cantidadInmuebles: item.cantidadInmuebles,
+      cantidadBienes: item.cantidadBienes,
       costoNotarial:     item.costoNotarialFinal,
       costoRegistral:    item.costoRegistralFinal,
       totalPagar:        item.totalFinal,
@@ -313,7 +313,7 @@ export class CotizadorComponent implements OnInit {
         id: Date.now().toString(),
         acto: this.actoSeleccionado,
         moneda: this.form.value.moneda,
-        cantidadInmuebles: this.form.value.cantidadInmuebles,
+        cantidadBienes: this.form.value.cantidadBienes,
         conoceValores: this.form.value.conoceValor,
         importeAgrupado: this.form.value.importeTotal,
         importesIndividuales: this.form.value.valoresIndividuales,
@@ -344,7 +344,7 @@ export class CotizadorComponent implements OnInit {
       const tipoActo = this.carrito.map(it => it.acto.nombre).join(' + ');
       const moneda = this.carrito[0].moneda;
 
-      const cantidadInmuebles = this.carrito.reduce((sum, it) => sum + it.cantidadInmuebles, 0);
+      const cantidadBienes = this.carrito.reduce((sum, it) => sum + it.cantidadBienes, 0);
       const costoNotarial = this.carrito.reduce((sum, it) => sum + it.costoNotarialFinal, 0);
       const costoRegistral = this.carrito.reduce((sum, it) => sum + it.costoRegistralFinal, 0);
       const totalPagar = this.carrito.reduce((sum, it) => sum + it.totalFinal, 0);
@@ -354,7 +354,7 @@ export class CotizadorComponent implements OnInit {
         referenciaInterna: referenciaGlobal,
         tipoActo:          tipoActo,
         moneda:            moneda,
-        cantidadInmuebles: cantidadInmuebles,
+        cantidadBienes: cantidadBienes,
         costoNotarial:     costoNotarial,
         costoRegistral:    costoRegistral,
         totalPagar:        totalPagar,

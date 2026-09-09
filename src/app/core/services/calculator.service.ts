@@ -30,7 +30,7 @@ export interface CotizacionItem {
   id: string;
   acto: TarifarioActo;
   moneda: 'DOLARES' | 'SOLES';
-  cantidadInmuebles: number;
+  cantidadBienes: number;
   conoceValores: boolean;
   importeAgrupado: number;
   importesIndividuales: number[];
@@ -82,7 +82,7 @@ export class CalculatorService {
     tc: number,
     uit: number,
     acto: TarifarioActo,
-    cantidadInmuebles: number,
+    cantidadBienes: number,
     conoceValores: boolean,
     importesIndividuales: number[] = []
   ): ResultadoCalculo {
@@ -95,14 +95,14 @@ export class CalculatorService {
     const importeDolaresTotal = moneda === 'DOLARES' ? importeTotalSeguro : importeTotalSeguro / tc;
 
     if (!conoceValores) {
-      const totalTramite = acto.costo_tramite * cantidadInmuebles;
+      const totalTramite = acto.costo_tramite * cantidadBienes;
       costoRegistral = ((importeSolesTotal / 1000) * acto.tasa_registral_por_mil) + totalTramite;
       costoRegistral = Math.min(costoRegistral, uit); 
 
       costoNotarialRaw = this.obtenerCostoNotarial(importeDolaresTotal, acto.rangos);
     } else {
       // MODO DETALLADO
-      // Registral: se calcula individualmente por inmueble (norma)
+      // Registral: se calcula individualmente por bien (norma)
       // Notarial:  se suma todo primero y se aplica la tabla UNA SOLA VEZ
       let sumaTotalDolares = 0;
       for (const imp of importesIndividuales) {

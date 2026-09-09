@@ -44,10 +44,10 @@
         <div class="flex-1 flex flex-col gap-2 relative">
           <label class="font-semibold text-dark text-sm flex justify-between">
             Cantidad de Bienes
-            <span *ngIf="form.get('cantidadInmuebles')?.hasError('max')" class="text-red-500 text-xs font-bold">Max
+            <span *ngIf="form.get('cantidadBienes')?.hasError('max')" class="text-red-500 text-xs font-bold">Max
               25</span>
           </label>
-          <input type="number" formControlName="cantidadInmuebles" min="1" step="1" (keypress)="$event.charCode >= 48 && $event.charCode <= 57"
+          <input type="number" formControlName="cantidadBienes" min="1" step="1" (keypress)="$event.charCode >= 48 && $event.charCode <= 57"
             class="border border-neutral rounded-md p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
         </div>
 

@@ -23,7 +23,7 @@
             <th class="p-3 font-semibold">Fecha</th>
             <th class="p-3 font-semibold">Ref. Interna</th>
             <th class="p-3 font-semibold">Acto</th>
-            <th class="p-3 font-semibold">Inm.</th>
+            <th class="p-3 font-semibold">Bienes</th>
             <th class="p-3 font-semibold text-right">Notarial</th>
             <th class="p-3 font-semibold text-right">Registral</th>
             <th class="p-3 font-semibold text-right text-primary">Total</th>
@@ -36,7 +36,7 @@
               <td class="p-3 text-sm">{{ reg.fecha | date:'dd/MM/yyyy HH:mm' }}</td>
               <td class="p-3 text-sm font-medium text-dark">{{ reg.referenciaInterna || '-' }}</td>
               <td class="p-3 text-sm text-gray-700">{{ reg.tipoActo }}</td>
-              <td class="p-3 text-sm text-center">{{ reg.cantidadInmuebles }}</td>
+              <td class="p-3 text-sm text-center">{{ reg.cantidadBienes }}</td>
               <td class="p-3 text-sm text-right">S/ {{ reg.costoNotarial | number:'1.2-2' }}</td>
               <td class="p-3 text-sm text-right">S/ {{ reg.costoRegistral | number:'1.2-2' }}</td>
               <td class="p-3 text-sm text-right font-bold text-primary">S/ {{ reg.totalPagar | number:'1.2-2' }}</td>
