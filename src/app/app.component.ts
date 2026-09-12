@@ -3,6 +3,9 @@ import { RouterOutlet, RouterModule, Router } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
 import { AsyncPipe, DOCUMENT } from '@angular/common';
 import { Title } from '@angular/platform-browser';
+import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
+import { filter } from 'rxjs';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-root',
@@ -48,8 +51,31 @@ export class AppComponent implements OnInit {
     public router: Router,
     private renderer: Renderer2,
     private titleService: Title,
-    @Inject(DOCUMENT) private document: Document
-  ) {}
+    @Inject(DOCUMENT) private document: Document,
+    private swUpdate: SwUpdate
+  ) {
+    // Escuchar actualizaciones del Service Worker para evitar el caché duro
+    if (this.swUpdate.isEnabled) {
+      this.swUpdate.versionUpdates
+        .pipe(filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'))
+        .subscribe(() => {
+          Swal.fire({
+            title: 'Actualización disponible',
+            text: 'Se ha detectado una nueva versión del cotizador con mejoras. Se requiere actualizar para aplicar los cambios.',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Actualizar ahora',
+            cancelButtonText: 'Más tarde'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              this.document.location.reload();
+            }
+          });
+        });
+    }
+  }
 
   ngOnInit() {
     this.auth.notariaContext$.subscribe(ctx => {
