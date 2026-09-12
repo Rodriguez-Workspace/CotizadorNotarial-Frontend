@@ -94,8 +94,8 @@ export class PdfService {
 
       let yPos = 140 + offsetLineas;
       if (incluirRequisitos) {
-        doc.text("REQUISITOS:", 20, yPos);
-        doc.line(20, yPos + 1, 44, yPos + 1);
+        doc.text("REQUISITOS*:", 20, yPos);
+        doc.line(20, yPos + 1, 46, yPos + 1);
         
         doc.setFont("helvetica", "normal");
         yPos += 15;
@@ -110,6 +110,11 @@ export class PdfService {
           doc.text("- SIN REQUISITOS ADICIONALES", 20, yPos);
           yPos += 7;
         }
+        
+        yPos += 2;
+        doc.setFont("helvetica", "bolditalic");
+        doc.text("*Requisitos sujetos a evaluación", 20, yPos);
+        yPos += 5;
       }
 
       doc.setFont("helvetica", "bold");
