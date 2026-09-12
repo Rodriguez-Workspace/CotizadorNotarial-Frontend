@@ -26,7 +26,7 @@ export class PdfService {
       
       const ctx = this.auth.currentContext;
       const nombreNotaria = ctx?.perfil.nombre_oficial || 'COTIZADOR NOTARIAL';
-      const hexColor = ctx?.perfil.color_marca || '#000000ff';
+      const hexColor = ctx?.perfil.color_marca || '#125B18';
 
       let r = 0, g = 0, b = 0;
       const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexColor);
