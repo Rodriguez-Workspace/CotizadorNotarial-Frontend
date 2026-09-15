@@ -63,11 +63,11 @@ export class AppComponent implements OnInit {
             title: 'Actualización disponible',
             text: 'Se ha detectado una nueva versión del cotizador con mejoras. Se requiere actualizar para aplicar los cambios.',
             icon: 'info',
-            showCancelButton: true,
+            showCancelButton: false,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
             confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Actualizar ahora',
-            cancelButtonText: 'Más tarde'
+            confirmButtonText: 'Actualizar ahora'
           }).then((result) => {
             if (result.isConfirmed) {
               this.document.location.reload();
