@@ -6,7 +6,7 @@
 
 /* Ng-Select Tailwind Overrides */
 .custom-ng-select .ng-select-container {
-  @apply border border-neutral rounded-md p-[0.35rem] bg-white text-dark min-h-[3.2rem];
+  @apply border border-neutral rounded-md px-3 bg-white text-dark min-h-[3.2rem] items-center;
 }
 .custom-ng-select.ng-select-focused .ng-select-container {
   @apply outline-none border-primary ring-1 ring-primary transition-colors;
