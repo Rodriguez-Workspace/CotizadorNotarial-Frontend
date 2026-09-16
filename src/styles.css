@@ -6,7 +6,16 @@
 
 /* Ng-Select Tailwind Overrides */
 .custom-ng-select .ng-select-container {
-  @apply border border-neutral rounded-md px-3 bg-white text-dark min-h-[3.2rem] items-center;
+  @apply border border-neutral rounded-md px-3 bg-white text-dark min-h-[3.2rem] flex items-center;
+}
+.custom-ng-select .ng-value-container {
+  @apply flex items-center w-full;
+}
+.custom-ng-select .ng-input {
+  @apply flex items-center;
+}
+.custom-ng-select .ng-input > input {
+  @apply h-full mt-0;
 }
 .custom-ng-select.ng-select-focused .ng-select-container {
   @apply outline-none border-primary ring-1 ring-primary transition-colors;
