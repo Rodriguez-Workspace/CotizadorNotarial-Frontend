@@ -1,7 +1,7 @@
 {
   "name": "Cotizador Notarial",
   "short_name": "Cotizador Notarial",
-  "theme_color": "#1e40af",
+  "theme_color": "#2B2B2B",
   "background_color": "#fafafa",
   "display": "standalone",
   "scope": "./",
