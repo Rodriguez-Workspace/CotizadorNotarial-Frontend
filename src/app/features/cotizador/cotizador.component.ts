@@ -22,11 +22,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { CurrencyFormatDirective } from '../../shared/directives/currency-format.directive';
 import { obtenerFechaFormateadaLetras } from '../../core/utils/date.utils';
 import Swal from 'sweetalert2';
+import { NgSelectModule } from '@ng-select/ng-select';
 
 @Component({
   selector: 'app-cotizador',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, SwitcherComponent, CurrencyFormatDirective],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, SwitcherComponent, CurrencyFormatDirective, NgSelectModule],
   providers: [DatePipe],
   templateUrl: './cotizador.component.html',
 })
@@ -66,7 +67,6 @@ export class CotizadorComponent implements OnInit {
       importeTotal: [null, [Validators.required, Validators.min(0.01)]],
       valoresIndividuales: this.fb.array([]),
       referencia: [''],
-      nombreActoPersonalizado: [''],
       requisitosPersonalizados: this.fb.array([])
     });
   }
@@ -88,12 +88,6 @@ export class CotizadorComponent implements OnInit {
     });
     this.form.get('actoId')?.valueChanges.subscribe(id => {
       this.actoSeleccionado = this.actos.find(a => a.id === id) || null;
-      if (id === 'OTROS') {
-        this.form.get('nombreActoPersonalizado')?.setValidators([Validators.required]);
-      } else {
-        this.form.get('nombreActoPersonalizado')?.clearValidators();
-      }
-      this.form.get('nombreActoPersonalizado')?.updateValueAndValidity();
     });
     
     let lastCalcState = '';
@@ -147,10 +141,9 @@ export class CotizadorComponent implements OnInit {
 
   private getActoFinal() {
     let actoFinal = this.actoSeleccionado!;
-    if (actoFinal.id === 'OTROS') {
+    if (actoFinal.id.startsWith('CUSTOM_')) {
       actoFinal = {
         ...actoFinal,
-        nombre: this.form.value.nombreActoPersonalizado || 'Otros',
         requisitos: (this.form.value.requisitosPersonalizados || []).map((req: string, i: number) => ({
           id: `req_custom_${i}`,
           texto: req
@@ -159,6 +152,17 @@ export class CotizadorComponent implements OnInit {
     }
     return actoFinal;
   }
+
+  addCustomActFn = (name: string): TarifarioActo => {
+    return {
+      id: 'CUSTOM_' + Date.now(),
+      nombre: name,
+      costo_tramite: 0,
+      tasa_registral_por_mil: 0,
+      requisitos: [],
+      rangos: []
+    };
+  };
 
   agregarAlCarrito() {
     if (!this.actoSeleccionado || !this.resultados) return;
@@ -189,8 +193,7 @@ export class CotizadorComponent implements OnInit {
       cantidadBienes: 1,
       conoceValor: false,
       importeTotal: null,
-      referencia: '',
-      nombreActoPersonalizado: ''
+      referencia: ''
     });
     this.requisitosPersonalizados.clear();
     this.updateFormArrays(false, 1);
@@ -242,17 +245,6 @@ export class CotizadorComponent implements OnInit {
       ]);
       
       this.actos = [...actosFetch]; // Avoid mutating cached array
-      // Agregar acto personalizado al final si no existe
-      if (!this.actos.some(a => a.id === 'OTROS')) {
-        this.actos.push({
-          id: 'OTROS',
-          nombre: 'OTROS',
-          costo_tramite: 0,
-          tasa_registral_por_mil: 0,
-          requisitos: [],
-          rangos: []
-        });
-      }
       this.uitActual = variables.UIT;
       this.tcActual = Math.max(variables.compra, variables.venta);
       this.tcFecha = variables.fecha_sunat;

@@ -1,6 +1,16 @@
+@import "~@ng-select/ng-select/themes/default.theme.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Ng-Select Tailwind Overrides */
+.custom-ng-select .ng-select-container {
+  @apply border border-neutral rounded-md p-[0.35rem] bg-white text-dark min-h-[3.2rem];
+}
+.custom-ng-select.ng-select-focused .ng-select-container {
+  @apply outline-none border-primary ring-1 ring-primary transition-colors;
+}
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; background-color: #ffffff; }
