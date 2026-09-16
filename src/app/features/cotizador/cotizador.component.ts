@@ -211,7 +211,7 @@ export class CotizadorComponent implements OnInit {
     } catch (e) {
       console.error('Error loading data:', e);
       // Fallback values if Worker is unreachable
-      this.uitActual = 5150;
+      this.uitActual = 5500;
       this.tcActual = 3.8;
     }
   }
