@@ -80,7 +80,7 @@
       </div>
 
       <!-- Campos Personalizados (Otros) -->
-      <div *ngIf="form.get('actoId')?.value === 'OTROS'" class="flex flex-col gap-4 bg-indigo-50 p-4 rounded-md border border-indigo-200">
+      <div *ngIf="form.get('actoId')?.value === 'OTROS'" class="flex flex-col gap-4 bg-gray-50 p-4 rounded-md border border-neutral">
         <div class="flex flex-col gap-2">
           <label class="font-semibold text-dark text-sm">Nombre del Acto Personalizado</label>
           <input type="text" formControlName="nombreActoPersonalizado" placeholder="Ej: Compraventa de Vehículo"
