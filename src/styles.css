@@ -17,7 +17,7 @@
   transform: translateY(-50%) !important;
   @apply flex items-center w-full;
 }
-.custom-ng-select.ng-has-value .ng-input {
+.custom-ng-select .ng-has-value .ng-input {
   position: relative !important;
   top: auto !important;
   transform: none !important;
