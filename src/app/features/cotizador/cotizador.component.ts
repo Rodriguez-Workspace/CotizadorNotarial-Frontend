@@ -88,6 +88,7 @@ export class CotizadorComponent implements OnInit {
     });
     this.form.get('actoId')?.valueChanges.subscribe(id => {
       this.actoSeleccionado = this.actos.find(a => a.id === id) || null;
+      this.actos = this.actos.filter(a => !a.id.startsWith('CUSTOM_') || a.id === id);
     });
     
     let lastCalcState = '';
@@ -154,7 +155,7 @@ export class CotizadorComponent implements OnInit {
   }
 
   addCustomActFn = (name: string): TarifarioActo => {
-    return {
+    const newAct = {
       id: 'CUSTOM_' + Date.now(),
       nombre: name,
       costo_tramite: 0,
@@ -162,6 +163,8 @@ export class CotizadorComponent implements OnInit {
       requisitos: [],
       rangos: []
     };
+    this.actos.push(newAct);
+    return newAct;
   };
 
   agregarAlCarrito() {
