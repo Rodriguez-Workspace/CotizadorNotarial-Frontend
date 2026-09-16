@@ -47,7 +47,7 @@ import Swal from 'sweetalert2';
 })
 export class AppComponent implements OnInit {
   constructor(
-    public auth: AuthService, 
+    public auth: AuthService,
     public router: Router,
     private renderer: Renderer2,
     private titleService: Title,
@@ -113,7 +113,7 @@ export class AppComponent implements OnInit {
                 src: ctx.perfil.logo_url,
                 sizes: "192x192 512x512",
                 type: "image/png",
-                purpose: "any maskable"
+                purpose: "any"
               }
             ]
           };
@@ -129,11 +129,11 @@ export class AppComponent implements OnInit {
           manifestLink.href = manifestURL;
         }
       } else {
-         this.titleService.setTitle('Cotizador Notarial');
+        this.titleService.setTitle('Cotizador Notarial');
       }
     });
   }
-  
+
 
   logout() {
     this.auth.logout();
