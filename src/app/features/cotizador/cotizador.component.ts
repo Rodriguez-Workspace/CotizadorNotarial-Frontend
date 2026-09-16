@@ -145,10 +145,8 @@ export class CotizadorComponent implements OnInit {
     return n + r;
   }
 
-  agregarAlCarrito() {
-    if (!this.actoSeleccionado || !this.resultados) return;
-    
-    let actoFinal = this.actoSeleccionado;
+  private getActoFinal() {
+    let actoFinal = this.actoSeleccionado!;
     if (actoFinal.id === 'OTROS') {
       actoFinal = {
         ...actoFinal,
@@ -159,10 +157,15 @@ export class CotizadorComponent implements OnInit {
         }))
       };
     }
+    return actoFinal;
+  }
 
+  agregarAlCarrito() {
+    if (!this.actoSeleccionado || !this.resultados) return;
+    
     const item: CotizacionItem = {
       id: Date.now().toString(),
-      acto: actoFinal,
+      acto: this.getActoFinal(),
       moneda: this.form.value.moneda,
       cantidadBienes: this.form.value.cantidadBienes,
       conoceValores: this.form.value.conoceValor,
@@ -242,7 +245,7 @@ export class CotizadorComponent implements OnInit {
       // Agregar acto personalizado al final
       this.actos.push({
         id: 'OTROS',
-        nombre: 'Otros (Personalizado)',
+        nombre: 'OTROS',
         costo_tramite: 0,
         tasa_registral_por_mil: 0,
         requisitos: [],
@@ -302,7 +305,7 @@ export class CotizadorComponent implements OnInit {
     const ahora = new Date();
     const item: CotizacionItem = {
       id: Date.now().toString(),
-      acto: this.actoSeleccionado,
+      acto: this.getActoFinal(),
       moneda: this.form.value.moneda,
       cantidadBienes: this.form.value.cantidadBienes,
       conoceValores: this.form.value.conoceValor,
@@ -354,7 +357,7 @@ export class CotizadorComponent implements OnInit {
       const referencia = this.form.value.referencia || ''; // Fix: asegurar que la referencia viaje en guardado directo
       const item: CotizacionItem = {
         id: Date.now().toString(),
-        acto: this.actoSeleccionado,
+        acto: this.getActoFinal(),
         moneda: this.form.value.moneda,
         cantidadBienes: this.form.value.cantidadBienes,
         conoceValores: this.form.value.conoceValor,
