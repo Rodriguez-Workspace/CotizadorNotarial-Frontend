@@ -65,7 +65,9 @@ export class CotizadorComponent implements OnInit {
       conoceValor: [false],
       importeTotal: [null, [Validators.required, Validators.min(0.01)]],
       valoresIndividuales: this.fb.array([]),
-      referencia: ['']
+      referencia: [''],
+      nombreActoPersonalizado: [''],
+      requisitosPersonalizados: this.fb.array([])
     });
   }
 
@@ -86,6 +88,12 @@ export class CotizadorComponent implements OnInit {
     });
     this.form.get('actoId')?.valueChanges.subscribe(id => {
       this.actoSeleccionado = this.actos.find(a => a.id === id) || null;
+      if (id === 'OTROS') {
+        this.form.get('nombreActoPersonalizado')?.setValidators([Validators.required]);
+      } else {
+        this.form.get('nombreActoPersonalizado')?.clearValidators();
+      }
+      this.form.get('nombreActoPersonalizado')?.updateValueAndValidity();
     });
     
     let lastCalcState = '';
@@ -105,6 +113,18 @@ export class CotizadorComponent implements OnInit {
 
   get valoresIndividuales() {
     return this.form.get('valoresIndividuales') as FormArray;
+  }
+
+  get requisitosPersonalizados() {
+    return this.form.get('requisitosPersonalizados') as FormArray;
+  }
+
+  agregarRequisitoPersonalizado() {
+    this.requisitosPersonalizados.push(this.fb.control('', Validators.required));
+  }
+
+  eliminarRequisitoPersonalizado(index: number) {
+    this.requisitosPersonalizados.removeAt(index);
   }
 
   get granTotalNotarial(): number {
@@ -128,9 +148,21 @@ export class CotizadorComponent implements OnInit {
   agregarAlCarrito() {
     if (!this.actoSeleccionado || !this.resultados) return;
     
+    let actoFinal = this.actoSeleccionado;
+    if (actoFinal.id === 'OTROS') {
+      actoFinal = {
+        ...actoFinal,
+        nombre: this.form.value.nombreActoPersonalizado || 'Otros',
+        requisitos: (this.form.value.requisitosPersonalizados || []).map((req: string, i: number) => ({
+          id: `req_custom_${i}`,
+          texto: req
+        }))
+      };
+    }
+
     const item: CotizacionItem = {
       id: Date.now().toString(),
-      acto: this.actoSeleccionado,
+      acto: actoFinal,
       moneda: this.form.value.moneda,
       cantidadBienes: this.form.value.cantidadBienes,
       conoceValores: this.form.value.conoceValor,
@@ -154,8 +186,10 @@ export class CotizadorComponent implements OnInit {
       cantidadBienes: 1,
       conoceValor: false,
       importeTotal: null,
-      referencia: ''
+      referencia: '',
+      nombreActoPersonalizado: ''
     });
+    this.requisitosPersonalizados.clear();
     this.updateFormArrays(false, 1);
     this.actoSeleccionado = null;
     this.resultados = null;
@@ -205,6 +239,15 @@ export class CotizadorComponent implements OnInit {
       ]);
       
       this.actos = actosFetch; // Already sorted by the Worker
+      // Agregar acto personalizado al final
+      this.actos.push({
+        id: 'OTROS',
+        nombre: 'Otros (Personalizado)',
+        costo_tramite: 0,
+        tasa_registral_por_mil: 0,
+        requisitos: [],
+        rangos: []
+      });
       this.uitActual = variables.UIT;
       this.tcActual = Math.max(variables.compra, variables.venta);
       this.tcFecha = variables.fecha_sunat;
