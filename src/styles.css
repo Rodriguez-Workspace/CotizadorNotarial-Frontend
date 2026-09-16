@@ -12,9 +12,10 @@
   @apply flex items-center w-full h-full;
 }
 .custom-ng-select .ng-input {
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  @apply flex items-center;
+  position: relative !important;
+  top: auto !important;
+  transform: none !important;
+  @apply flex items-center flex-1;
 }
 .custom-ng-select .ng-input > input {
   @apply m-0 p-0;
