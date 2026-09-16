@@ -1,135 +1,188 @@
-# Cotizador Notarial — Frontend (Angular SPA)
+# CotizadorNotarial — Frontend
 
-Aplicación web progresiva (PWA) para generar cotizaciones de escrituras públicas notariales. Construida con [Angular 18](https://angular.dev/) y [TailwindCSS](https://tailwindcss.com/), desplegada en [Cloudflare Pages](https://pages.cloudflare.com/).
+Aplicación web progresiva (PWA) para abogados de notarías que permite cotizar actos notariales y registrales de forma rápida, generar PDFs de presupuesto y consultar el historial de cotizaciones.
 
-## Requisitos Previos
+---
 
-- **Node.js** ≥ 18
-- **npm** ≥ 9
-- Angular CLI (`npx ng` o `npm install -g @angular/cli`)
+## Stack
 
-## Instalación
+| Tecnología | Uso |
+|---|---|
+| **Angular 17** | Framework SPA (standalone components) |
+| **TailwindCSS** | Utilidades CSS |
+| **Firebase JS SDK** | Autenticación (Auth), contexto de usuario |
+| **@angular/fire** | Integración Angular ↔ Firebase |
+| **@angular/service-worker** | PWA — caché offline y actualizaciones automáticas |
+| **jsPDF** | Generación de PDFs en el navegador |
+| **SweetAlert2** | Modales y toasts de notificación |
+| **Dexie.js** | IndexedDB — guardado offline |
 
-```bash
-cd CotizadorNotarial-Frontend
-npm install
+---
+
+## Estructura de Carpetas
+
 ```
+src/
+├── app/
+│   ├── app.component.ts           # Root: theming dinámico + Service Worker updates
+│   ├── app.config.ts              # Providers globales (Router, Firebase, SW)
+│   ├── app.routes.ts              # Rutas lazy-loaded con AuthGuard
+│   ├── core/
+│   │   └── services/
+│   │       ├── auth.service.ts        # Sesión + notariaContext$
+│   │       ├── api.service.ts         # Comunicación con el backend (Cloudflare Worker)
+│   │       ├── calculator.service.ts  # Lógica de cálculo de aranceles
+│   │       ├── pdf.service.ts         # Generación de PDFs con jsPDF
+│   │       └── offline.service.ts     # Guardado en IndexedDB + sincronización
+│   ├── features/
+│   │   ├── cotizador/             # Formulario de cotización + carrito
+│   │   ├── historial/             # Tabla paginada del historial
+│   │   └── login/                 # Pantalla de inicio de sesión
+│   └── shared/
+│       ├── components/
+│       │   └── switcher/          # Toggle "Acumulado / Individual"
+│       └── directives/
+│           └── currency-format.directive.ts  # Formateo de moneda en inputs
+├── environments/
+│   ├── environment.ts             # Desarrollo
+│   └── environment.prod.ts        # Producción
+└── ngsw-config.json               # Configuración del Service Worker
+```
+
+---
+
+## Variables de Entorno
+
+En `src/environments/environment.prod.ts`:
+
+```typescript
+export const environment = {
+  production: true,
+  apiUrl: 'https://tu-worker.workers.dev',
+  firebase: {
+    apiKey: 'AIza...',
+    authDomain: 'tu-proyecto.firebaseapp.com',
+    projectId: 'tu-proyecto',
+    storageBucket: 'tu-proyecto.firebasestorage.app',
+    messagingSenderId: '...',
+    appId: '...'
+  }
+};
+```
+
+> **Nota:** Las `apiKey` de Firebase para clientes web son seguras de incluir en el código — el acceso a los datos está protegido por las reglas de Firestore, no por la clave pública.
+
+---
 
 ## Desarrollo Local
 
 ```bash
-npm start        # equivalente a ng serve
+npm install
+npm run start    # ng serve — servidor en http://localhost:4200
 ```
 
-El servidor de desarrollo se inicia en `http://localhost:4200`.
+---
 
-> **Nota:** El frontend se conecta al Worker backend en producción por defecto. Para desarrollo local del backend, modifica `src/environments/environment.ts`:
->
-> ```typescript
-> apiUrl: 'http://localhost:8787'
-> ```
-
-## Build de Producción
+## Construcción para Producción
 
 ```bash
-npm run build:prod    # ng build --configuration production
+npm run build    # ng build --configuration=production
 ```
 
-El output se genera en `dist/cotizador-notarial/`.
+Los archivos de salida se generan en `dist/cotizador-notarial/browser/`. Este directorio se despliega en Cloudflare Pages.
 
-## Despliegue en Cloudflare Pages
+---
 
-1. Conectar el repositorio a Cloudflare Pages
-2. Configurar:
-   - **Build command**: `npm run build:prod`
-   - **Build output directory**: `dist/cotizador-notarial`
-3. Los archivos `_redirects` y `_headers` en `public/` se copian automáticamente al build
+## Despliegue (Cloudflare Pages)
 
-### Archivos de configuración de Pages
+El despliegue se puede configurar de dos maneras:
 
-- **`_redirects`**: SPA catch-all (`/* → /index.html 200`)
-- **`_headers`**: Security headers (X-Frame-Options, CSP, COOP, etc.)
+**Automático (recomendado):** Conectar el repositorio de GitHub a Cloudflare Pages. Cada push a `main` desplegará automáticamente.
 
-## Estructura del Proyecto
-
-```
-src/app/
-├── app.component.ts          # Shell: navbar, tema dinámico, PWA manifest
-├── app.routes.ts             # /login, /cotizador, /historial
-├── app.config.ts             # Firebase, HttpClient, Service Worker
-├── core/
-│   ├── services/
-│   │   ├── api.service.ts        # HTTP client → Worker backend
-│   │   ├── auth.service.ts       # Firebase Auth + contexto tenant
-│   │   ├── calculator.service.ts # Motor de cálculo de precios
-│   │   ├── offline.service.ts    # IndexedDB + auto-sync
-│   │   └── pdf.service.ts        # Generación PDF (jsPDF)
-│   └── utils/
-│       └── date.utils.ts         # Formateo de fechas
-├── features/
-│   ├── login/                    # Google Sign-In
-│   ├── cotizador/                # Calculadora + carrito
-│   └── historial/                # Tabla de historial
-└── shared/
-    ├── components/
-    │   └── switcher/             # Toggle input (moneda, etc.)
-    └── directives/
-        └── currency-format.directive.ts  # Formato numérico
-```
-
-## Características
-
-### Cotizador
-- Formulario reactivo con cálculo en tiempo real
-- Soporta acumulado (un importe total) o detallado (por bien individual)
-- Carrito de proforma (múltiples actos en una cotización)
-- Edición de montos antes de generar el PDF
-- Generación de PDF con o sin requisitos
-
-### Historial
-- Tabla paginada con carga progresiva
-- Filtro por referencia interna o tipo de acto
-- Regeneración de PDFs desde registros históricos
-
-### PWA
-- Service Worker para funcionamiento offline
-- Manifest dinámico con branding de la notaría
-- Sincronización automática al recuperar conexión
-
-### Multi-tenant
-- Branding dinámico (color, logo, nombre) según la notaría
-- Favicon y título del navegador personalizados
-- Manifest PWA con datos de la notaría
-
-## Configuración Firebase
-
-Los archivos `environment.ts` y `environment.prod.ts` contienen la configuración de Firebase:
-
-```typescript
-firebase: {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "..."
-}
-```
-
-> Las API keys de Firebase son públicas por diseño y están restringidas por dominio en la consola de Firebase.
-
-## Testing
-
+**Manual:**
 ```bash
-npm test          # Karma + Jasmine
+npm run build
+npx wrangler pages deploy dist/cotizador-notarial/browser
 ```
 
-## Dependencias Principales
+---
 
-| Paquete | Uso |
-|---|---|
-| `@angular/fire` | Firebase SDK para Angular |
-| `jspdf` | Generación de PDFs client-side |
-| `html2canvas` | Captura de DOM para PDFs (legacy) |
-| `sweetalert2` | Notificaciones toast y diálogos |
-| `firebase` | Firebase Auth SDK |
+## Servicios Principales
+
+### `AuthService`
+Maneja el estado de sesión. Expone `notariaContext$` (Observable) con el contexto completo de la notaría del usuario autenticado: perfil, rol, spreadsheetId.
+
+### `ApiService`
+Único punto de contacto con el backend. En cada llamada:
+1. Obtiene el Firebase ID Token fresco desde `AuthService`.
+2. Lo adjunta en `Authorization: Bearer`.
+3. Si el backend responde `401/403`, hace logout automático.
+
+Mantiene caché en memoria para: `tenant`, `tarifario`, `variables` (invalidable con el botón "Actualizar Ahora").
+
+### `CalculatorService`
+Lógica de cálculo de aranceles. Dado un acto, importe, moneda y tipo de cambio, calcula:
+- **Costo Notarial**: Busca el rango de precio correspondiente al valor en USD.
+- **Costo Registral**: `tasa_registral_por_mil × valor_USD / 1000`.
+- **Total a Pagar**: Suma de ambos, convertida a la moneda seleccionada.
+
+### `PdfService`
+Genera PDFs usando `jsPDF` directamente en el navegador (sin servidor). Soporta:
+- PDF con o sin lista de requisitos.
+- Logo de la notaría descargado desde Firebase Storage.
+- Branding dinámico con el color de marca de la notaría.
+
+### `OfflineService`
+Guarda cotizaciones en IndexedDB (Dexie.js) cuando el backend no está disponible. Cuando vuelve la conectividad, las sincroniza automáticamente.
+
+---
+
+## Flujo del Cotizador
+
+```
+1. Seleccionar Tipo de Acto (lista del tarifario de la notaría)
+2. Seleccionar Moneda (SOLES / DÓLARES)
+3. Indicar cantidad de bienes
+4. Si acto = "OTROS": escribir nombre del acto y añadir requisitos personalizados
+5. Ingresar valor(es) del bien (acumulado o individual por bien)
+6. El sistema calcula automáticamente los costos
+7. El abogado puede ajustar manualmente los montos finales
+8. Opciones:
+   a. Añadir al Carrito (proforma multi-acto)
+   b. Generar PDF directo
+   c. Guardar en historial (Google Sheets)
+```
+
+---
+
+## PWA y Service Worker
+
+La app es una Progressive Web App completa:
+
+- **Instalable** en el dispositivo como app nativa.
+- **Funciona offline** gracias al caché de assets del Service Worker.
+- **Actualización automática**: Cuando se publica una nueva versión en Cloudflare Pages, el Service Worker detecta el cambio en segundo plano y muestra un aviso (`SweetAlert2`) pidiendo al usuario que actualice. Al confirmar, recarga la página con el nuevo código sin perder el trabajo guardado.
+
+### Ciclo de actualización
+```
+Deploy en Cloudflare Pages
+        │
+        ▼
+Service Worker detecta cambio (en background, sin acción del usuario)
+        │
+        ▼
+SweetAlert: "Nueva versión disponible → Actualizar ahora"
+        │
+        ▼
+window.location.reload() → Nuevo código en memoria
+```
+
+---
+
+## Seguridad del Frontend
+
+- **Autenticación**: Firebase Auth con Google OAuth o Email/Password.
+- **Tokens**: Firebase ID Tokens con duración de 1 hora. Se renuevan automáticamente.
+- **Sin datos sensibles en localStorage**: El token se obtiene siempre con `getIdToken()` que maneja el refresh internamente.
+- **CSP**: La app Angular por sí misma no ejecuta HTML dinámico. No usa `innerHTML` con datos de usuario.
+- **Validación de inputs**: Los campos de montos solo aceptan números (directiva `CurrencyFormatDirective` + `keypress`). El nombre de acto personalizado acepta texto libre (sin restricciones, ya que es para uso interno).
