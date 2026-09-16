@@ -241,16 +241,18 @@ export class CotizadorComponent implements OnInit {
         this.apiSvc.getVariables()
       ]);
       
-      this.actos = actosFetch; // Already sorted by the Worker
-      // Agregar acto personalizado al final
-      this.actos.push({
-        id: 'OTROS',
-        nombre: 'OTROS',
-        costo_tramite: 0,
-        tasa_registral_por_mil: 0,
-        requisitos: [],
-        rangos: []
-      });
+      this.actos = [...actosFetch]; // Avoid mutating cached array
+      // Agregar acto personalizado al final si no existe
+      if (!this.actos.some(a => a.id === 'OTROS')) {
+        this.actos.push({
+          id: 'OTROS',
+          nombre: 'OTROS',
+          costo_tramite: 0,
+          tasa_registral_por_mil: 0,
+          requisitos: [],
+          rangos: []
+        });
+      }
       this.uitActual = variables.UIT;
       this.tcActual = Math.max(variables.compra, variables.venta);
       this.tcFecha = variables.fecha_sunat;
