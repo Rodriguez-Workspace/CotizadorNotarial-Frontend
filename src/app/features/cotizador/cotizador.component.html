@@ -23,7 +23,7 @@
 
       <!-- Fila 1 -->
       <div class="flex flex-col md:flex-row gap-6">
-        <div class="flex-1 flex flex-col gap-2">
+        <div class="flex-1 min-w-0 flex flex-col gap-2">
           <label class="font-semibold text-dark text-sm">Tipo de Acto</label>
           <ng-select formControlName="actoId"
             [items]="actos"
@@ -37,7 +37,7 @@
           </ng-select>
         </div>
 
-        <div class="flex-1 flex flex-col gap-2">
+        <div class="flex-1 min-w-0 flex flex-col gap-2">
           <label class="font-semibold text-dark text-sm">Moneda del Importe</label>
           <app-switcher formControlName="moneda" option1="Dólares ($)" value1="DOLARES" option2="Soles (S/)"
             value2="SOLES"></app-switcher>
@@ -46,7 +46,7 @@
 
       <!-- Fila 2 -->
       <div class="flex flex-col md:flex-row gap-6">
-        <div class="flex-1 flex flex-col gap-2 relative">
+        <div class="flex-1 min-w-0 flex flex-col gap-2 relative">
           <label class="font-semibold text-dark text-sm flex justify-between">
             Cantidad de Bienes
             <span *ngIf="form.get('cantidadBienes')?.hasError('max')" class="text-red-500 text-xs font-bold">Max
@@ -56,7 +56,7 @@
             class="border border-neutral rounded-md p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
         </div>
 
-        <div class="flex-1 flex flex-col gap-2">
+        <div class="flex-1 min-w-0 flex flex-col gap-2">
           <label class="font-semibold text-dark text-sm">¿Conoce el valor individual?</label>
           <app-switcher formControlName="conoceValor" option1="NO (Acumulado)" [value1]="false"
             option2="SÍ (Individual)" [value2]="true"></app-switcher>
