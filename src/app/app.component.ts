@@ -102,7 +102,7 @@ export class AppComponent implements OnInit {
           const manifest = {
             name: ctx.perfil.nombre_oficial,
             short_name: ctx.perfil.nombre_oficial,
-            theme_color: ctx.perfil.color_marca || '#1e40af',
+            theme_color: '#2B2B2B',
             background_color: '#fafafa',
             display: 'standalone',
             scope: './',
