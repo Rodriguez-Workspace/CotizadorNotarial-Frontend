@@ -31,26 +31,10 @@
             bindValue="id"
             [searchFn]="customSearchActoFn"
             [addTag]="addCustomActFn"
-            (search)="onActoSearch($event)"
-            (clear)="onActoSearchClear()"
-            (close)="onActoSearchClear()"
             placeholder="Seleccione o escriba un trámite..."
             notFoundText="Trámite no encontrado"
             addTagText="Añadir trámite personalizado:"
             class="custom-ng-select">
-            <ng-template ng-option-tmp let-item="item">
-              <div class="py-1">
-                <div class="font-medium text-gray-800 text-sm leading-snug">{{ item.nombre }}</div>
-                @if (getSearchHint(item); as hint) {
-                  <div class="text-xs text-blue-600 font-normal mt-0.5 flex items-center gap-1.5">
-                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                      {{ hint.tipo }}
-                    </span>
-                    <span class="truncate text-gray-500 italic">{{ hint.texto }}</span>
-                  </div>
-                }
-              </div>
-            </ng-template>
           </ng-select>
         </div>
 

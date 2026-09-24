@@ -23,7 +23,7 @@ import { CurrencyFormatDirective } from '../../shared/directives/currency-format
 import { obtenerFechaFormateadaLetras } from '../../core/utils/date.utils';
 import Swal from 'sweetalert2';
 import { NgSelectModule } from '@ng-select/ng-select';
-import { ActosDictionaryService, MatchHint } from '../../core/services/actos-dictionary.service';
+import { ActosDictionaryService } from '../../core/services/actos-dictionary.service';
 
 @Component({
   selector: 'app-cotizador',
@@ -48,7 +48,6 @@ export class CotizadorComponent implements OnInit {
   registralEditCtrl = new FormControl<number | null>(null);
 
   isSaving: boolean = false;
-  currentSearchTerm: string = '';
 
   // fechaActual se captura al montar el componente para mostrarla en la UI,
   // pero los PDFs y guardados usan new Date() en el instante del clic.
@@ -171,21 +170,8 @@ export class CotizadorComponent implements OnInit {
   };
 
   customSearchActoFn = (term: string, item: TarifarioActo): boolean => {
-    this.currentSearchTerm = term || '';
     return this.dictSvc.matches(item, term);
   };
-
-  onActoSearch(event: { term: string; items: any[] }): void {
-    this.currentSearchTerm = event?.term || '';
-  }
-
-  onActoSearchClear(): void {
-    this.currentSearchTerm = '';
-  }
-
-  getSearchHint(acto: TarifarioActo): MatchHint | null {
-    return this.dictSvc.getHint(acto, this.currentSearchTerm);
-  }
 
   agregarAlCarrito() {
     if (!this.actoSeleccionado || !this.resultados) return;
