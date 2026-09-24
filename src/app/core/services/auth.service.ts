@@ -26,7 +26,7 @@ export interface NotariaPerfil {
   logo_url: string;
 }
 
-export type UserRole = 'titular' | 'admin' | 'abogado';
+export type UserRole = 'superadmin' | 'titular' | 'admin' | 'abogado';
 
 export interface NotariaContext {
   id: string;
