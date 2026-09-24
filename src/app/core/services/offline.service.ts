@@ -21,55 +21,64 @@ const STORE_NAME = 'cotizaciones_offline';
 })
 export class OfflineService {
   private db: IDBDatabase | null = null;
+  private dbPromise: Promise<IDBDatabase | null>;
 
   constructor(private apiSvc: ApiService) {
-    this.initIndexedDB();
+    this.dbPromise = this.initIndexedDB();
     window.addEventListener('online', () => this.syncOfflineData());
   }
 
   // ─── IndexedDB setup ───────────────────────────────────────────────────
 
-  private initIndexedDB(): void {
-    try {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+  private initIndexedDB(): Promise<IDBDatabase | null> {
+    return new Promise((resolve) => {
+      try {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onupgradeneeded = (event: any) => {
-        const db = event.target.result as IDBDatabase;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { autoIncrement: true });
-        }
-      };
+        request.onupgradeneeded = (event: any) => {
+          const db = event.target.result as IDBDatabase;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { autoIncrement: true });
+          }
+        };
 
-      request.onsuccess = (event: any) => {
-        this.db = event.target.result as IDBDatabase;
-      };
+        request.onsuccess = (event: any) => {
+          this.db = event.target.result as IDBDatabase;
+          resolve(this.db);
+        };
 
-      request.onerror = (event: any) => {
-        console.error('[OfflineService] IndexedDB error:', event.target.error);
-      };
-    } catch (e) {
-      console.error('[OfflineService] Failed to open IndexedDB:', e);
-    }
+        request.onerror = (event: any) => {
+          console.error('[OfflineService] IndexedDB error:', event.target.error);
+          resolve(null);
+        };
+      } catch (e) {
+        console.error('[OfflineService] Failed to open IndexedDB:', e);
+        resolve(null);
+      }
+    });
   }
 
-  private saveToIndexedDB(items: CotizacionPayload[]): void {
-    if (!this.db) return;
-    const tx = this.db.transaction(STORE_NAME, 'readwrite');
+  private async saveToIndexedDB(items: CotizacionPayload[]): Promise<void> {
+    const db = this.db || await this.dbPromise;
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     store.add(items);
   }
 
-  private clearIndexedDB(): void {
-    if (!this.db) return;
-    const tx = this.db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).clear();
+  private async deleteFromIndexedDB(key: IDBValidKey): Promise<void> {
+    const db = this.db || await this.dbPromise;
+    if (!db) return;
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(key);
   }
 
-  private getAllOfflineData(): Promise<{ key: IDBValidKey; value: CotizacionPayload[] }[]> {
+  private async getAllOfflineData(): Promise<{ key: IDBValidKey; value: CotizacionPayload[] }[]> {
+    const db = this.db || await this.dbPromise;
     return new Promise((resolve, reject) => {
-      if (!this.db) return resolve([]);
+      if (!db) return resolve([]);
 
-      const tx    = this.db.transaction(STORE_NAME, 'readonly');
+      const tx    = db.transaction(STORE_NAME, 'readonly');
       const store = tx.objectStore(STORE_NAME);
       const results: { key: IDBValidKey; value: CotizacionPayload[] }[] = [];
 
@@ -95,7 +104,7 @@ export class OfflineService {
    */
   async saveCotizaciones(items: CotizacionPayload[]): Promise<void> {
     if (!navigator.onLine) {
-      this.saveToIndexedDB(items);
+      await this.saveToIndexedDB(items);
       Swal.fire('Guardado Local', 'Se ha respaldado localmente y se intentará subir luego.', 'info');
       return;
     }
@@ -108,7 +117,7 @@ export class OfflineService {
       });
     } catch (e) {
       // Save locally as fallback if the API call fails
-      this.saveToIndexedDB(items);
+      await this.saveToIndexedDB(items);
       Swal.fire('Guardado Local', 'Se ha respaldado localmente y se intentará subir luego.', 'info');
     }
   }
@@ -121,23 +130,24 @@ export class OfflineService {
 
     console.log(`[OfflineService] Syncing ${pendingGroups.length} pending group(s)...`);
 
-    let allSucceeded = true;
+    let syncedCount = 0;
     for (const group of pendingGroups) {
       try {
         await this.apiSvc.saveCotizacion(group.value);
-      } catch {
-        allSucceeded = false;
+        await this.deleteFromIndexedDB(group.key);
+        syncedCount++;
+      } catch (e) {
+        console.warn('[OfflineService] Sync halted due to error on item:', e);
         break;
       }
     }
 
-    if (allSucceeded) {
-      this.clearIndexedDB();
+    if (syncedCount > 0) {
       Swal.fire({
         toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
         icon: 'success',
         title: 'Sincronizado',
-        text: `${pendingGroups.length} cotización(es) offline guardada(s).`
+        text: `${syncedCount} cotización(es) offline guardada(s).`
       });
     }
   }

@@ -121,6 +121,9 @@ export class AppComponent implements OnInit {
           const blob = new Blob([stringManifest], { type: 'application/json' });
           const manifestURL = URL.createObjectURL(blob);
           let manifestLink = this.document.querySelector("link[rel='manifest']") as HTMLLinkElement;
+          if (manifestLink?.href && manifestLink.href.startsWith('blob:')) {
+            URL.revokeObjectURL(manifestLink.href);
+          }
           if (!manifestLink) {
             manifestLink = this.document.createElement('link');
             manifestLink.rel = 'manifest';

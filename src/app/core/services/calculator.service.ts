@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 
 export interface Rango {
   min: number;
-  max: number;
+  max: number | null;
   valor: number | null; 
 }
 
@@ -58,7 +58,7 @@ export class CalculatorService {
     for (let i = 0; i < rangos.length; i++) {
       const rango = rangos[i];
       
-      if (importeDolares <= rango.max) {
+      if (rango.max === null || importeDolares <= rango.max) {
         if (rango.valor === null) {
           if (i > 0) {
             return rangos[i - 1].valor || 0;
@@ -90,9 +90,10 @@ export class CalculatorService {
     let costoRegistral = 0;
     let costoNotarialRaw = 0;
     
+    const seguroTc = tc > 0 ? tc : 1;
     const importeTotalSeguro = importeTotalAgrupado || 0;
-    const importeSolesTotal = moneda === 'SOLES' ? importeTotalSeguro : importeTotalSeguro * tc;
-    const importeDolaresTotal = moneda === 'DOLARES' ? importeTotalSeguro : importeTotalSeguro / tc;
+    const importeSolesTotal = moneda === 'SOLES' ? importeTotalSeguro : importeTotalSeguro * seguroTc;
+    const importeDolaresTotal = moneda === 'DOLARES' ? importeTotalSeguro : importeTotalSeguro / seguroTc;
 
     if (!conoceValores) {
       const totalTramite = acto.costo_tramite * cantidadBienes;
@@ -106,8 +107,8 @@ export class CalculatorService {
       // Notarial:  se suma todo primero y se aplica la tabla UNA SOLA VEZ
       let sumaTotalDolares = 0;
       for (const imp of importesIndividuales) {
-        const impSol = moneda === 'SOLES' ? imp : imp * tc;
-        const impDol = moneda === 'DOLARES' ? imp : imp / tc;
+        const impSol = moneda === 'SOLES' ? imp : imp * seguroTc;
+        const impDol = moneda === 'DOLARES' ? imp : imp / seguroTc;
         costoRegistral += this.calcularCostoRegistralIndividual(impSol, acto.tasa_registral_por_mil, acto.costo_tramite, uit);
         sumaTotalDolares += impDol;
       }

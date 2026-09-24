@@ -53,7 +53,7 @@ export class HistorialComponent implements OnInit {
         this.apiSvc.getHistorial(this.limitePorBloque, this.offsetActual)
       ]);
       this.actos = actos;
-      this.registros = [...res.data].reverse(); // Mostrar los más recientes primero
+      this.registros = [...res.data];
       this.hayMasEnNube = res.hasMore;
       this.aplicarFiltro();
     } catch (e) {
@@ -93,7 +93,7 @@ export class HistorialComponent implements OnInit {
        this.offsetActual += this.limitePorBloque;
        try {
          const res = await this.apiSvc.getHistorial(this.limitePorBloque, this.offsetActual);
-         this.registros = [...this.registros, ...res.data.reverse()];
+         this.registros = [...this.registros, ...res.data];
          this.hayMasEnNube = res.hasMore;
          this.aplicarFiltro(false);
          this.paginaActual = nuevaPagina;
