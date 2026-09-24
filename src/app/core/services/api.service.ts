@@ -20,7 +20,7 @@ import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
 import { Auth, user } from '@angular/fire/auth';
 import { environment } from '../../../environments/environment';
-import { AuthService, NotariaContext } from './auth.service';
+import { AuthService, NotariaContext, UserRole } from './auth.service';
 import { TarifarioActo } from './calculator.service';
 import Swal from 'sweetalert2';
 
@@ -124,7 +124,7 @@ export class ApiService {
       const res = await this.get<{ notariaId: string; rol: string; perfil: any; spreadsheetId: string | null; serviceAccountEmail: string }>('/api/tenant');
       const ctx: NotariaContext = {
         id: res.notariaId,
-        rol: res.rol as 'admin' | 'abogado',
+        rol: res.rol as UserRole,
         perfil: res.perfil,
         spreadsheetId: res.spreadsheetId,
         serviceAccountEmail: res.serviceAccountEmail
@@ -133,7 +133,7 @@ export class ApiService {
       this.authSvc.setNotariaContext(ctx);
       
       // Híbrido: Si no tiene hoja de cálculo, inicializarla
-      if (ctx.rol === 'abogado' && !ctx.spreadsheetId) {
+      if (!ctx.spreadsheetId) {
         await this.initializeGoogleSheet(ctx);
       }
       

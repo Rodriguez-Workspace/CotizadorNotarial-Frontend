@@ -26,10 +26,12 @@ export interface NotariaPerfil {
   logo_url: string;
 }
 
+export type UserRole = 'titular' | 'admin' | 'abogado';
+
 export interface NotariaContext {
   id: string;
   perfil: NotariaPerfil;
-  rol: 'admin' | 'abogado';
+  rol: UserRole;
   spreadsheetId: string | null;
   serviceAccountEmail?: string;
 }
