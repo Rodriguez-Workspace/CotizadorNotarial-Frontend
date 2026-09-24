@@ -60,7 +60,7 @@ export class CotizadorComponent implements OnInit {
     private auth: AuthService
   ) {
     this.form = this.fb.group({
-      actoId: ['', Validators.required],
+      actoId: [null, Validators.required],
       moneda: ['DOLARES', Validators.required],
       cantidadBienes: [1, [Validators.required, Validators.min(1), Validators.max(25), Validators.pattern('^[0-9]+$')]],
       conoceValor: [false],
@@ -192,7 +192,7 @@ export class CotizadorComponent implements OnInit {
     this.carrito.push(item);
     
     this.form.patchValue({
-      actoId: '',
+      actoId: null,
       cantidadBienes: 1,
       conoceValor: false,
       importeTotal: null,
