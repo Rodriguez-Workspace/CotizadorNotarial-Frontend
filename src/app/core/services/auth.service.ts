@@ -23,6 +23,7 @@ export interface NotariaPerfil {
   nombre_oficial: string;
   ruc?: string;
   color_marca: string;
+  color_membrete?: string;
   logo_url: string;
   direccion?: string;
   distrito_ciudad?: string;
