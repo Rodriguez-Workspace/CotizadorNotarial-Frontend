@@ -59,15 +59,37 @@ export class PdfService {
 
       const nombresActos = items.map(it => it.acto.nombre).join(', ');
 
-      const reqsMap = new Map<string, string>();
+      // 1. Todas las bases primero (sin duplicados, en orden de aparición de los actos)
+      const basesMap = new Map<string, string>();
+      // 2. Después los específicos de cada acto (sin duplicados)
+      const especificosMap = new Map<string, string>();
+
       items.forEach(it => {
         if (it.acto.requisitos && Array.isArray(it.acto.requisitos)) {
           it.acto.requisitos.forEach(req => {
-            reqsMap.set(req.id, req.texto);
+            if (req.is_base) {
+              if (!basesMap.has(req.id)) {
+                basesMap.set(req.id, req.texto);
+              }
+            } else {
+              if (!especificosMap.has(req.id)) {
+                especificosMap.set(req.id, req.texto);
+              }
+            }
           });
         }
       });
-      const requisitosDeduplicados = Array.from(reqsMap.values());
+
+      // Deduplicar: si un específico ya está en las bases, no se duplica
+      const listaFinalBases = Array.from(basesMap.values());
+      const listaFinalEspecificos: string[] = [];
+      for (const [id, texto] of especificosMap.entries()) {
+        if (!basesMap.has(id)) {
+          listaFinalEspecificos.push(texto);
+        }
+      }
+
+      const requisitosDeduplicados = [...listaFinalBases, ...listaFinalEspecificos];
 
       // ─── Membrete Superior Condicional ────────────────────────────
       const tieneMembreteSuperior = Boolean(

@@ -149,7 +149,8 @@ export class CotizadorComponent implements OnInit {
         ...actoFinal,
         requisitos: (this.form.value.requisitosPersonalizados || []).map((req: string, i: number) => ({
           id: `req_custom_${i}`,
-          texto: req
+          texto: req,
+          is_base: false
         }))
       };
     }
