@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { jsPDF } from 'jspdf';
 import Swal from 'sweetalert2';
+import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 import { CotizacionItem } from './calculator.service';
 
@@ -84,42 +85,45 @@ export class PdfService {
         if (imgIzq) {
           const maxW = 28, maxH = 22;
           const ratio = imgIzq.width / imgIzq.height;
+          const boxRatio = maxW / maxH;
           let w = maxW, h = maxH;
-          if (ratio >= 1) {
-            h = Math.min(maxH, w / ratio);
+          if (ratio >= boxRatio) {
+            h = maxW / ratio;
           } else {
-            w = Math.min(maxW, h * ratio);
+            w = maxH * ratio;
           }
           const y = 9 + (maxH - h) / 2;
-          doc.addImage(imgIzq.dataUrl, 'PNG', 15, y, w, h);
+          doc.addImage(imgIzq.dataUrl, this.getImageFormat(imgIzq.dataUrl), 15, y, w, h);
         }
 
         if (imgCentro) {
           const maxW = 100, maxH = 22;
           const ratio = imgCentro.width / imgCentro.height;
+          const boxRatio = maxW / maxH;
           let w = maxW, h = maxH;
-          if (ratio > (maxW / maxH)) {
-            h = w / ratio;
+          if (ratio >= boxRatio) {
+            h = maxW / ratio;
           } else {
-            w = h * ratio;
+            w = maxH * ratio;
           }
           const x = 105 - (w / 2);
           const y = 9 + (maxH - h) / 2;
-          doc.addImage(imgCentro.dataUrl, 'PNG', x, y, w, h);
+          doc.addImage(imgCentro.dataUrl, this.getImageFormat(imgCentro.dataUrl), x, y, w, h);
         }
 
         if (imgDer) {
           const maxW = 28, maxH = 22;
           const ratio = imgDer.width / imgDer.height;
+          const boxRatio = maxW / maxH;
           let w = maxW, h = maxH;
-          if (ratio >= 1) {
-            h = Math.min(maxH, w / ratio);
+          if (ratio >= boxRatio) {
+            h = maxW / ratio;
           } else {
-            w = Math.min(maxW, h * ratio);
+            w = maxH * ratio;
           }
           const x = 195 - w;
           const y = 9 + (maxH - h) / 2;
-          doc.addImage(imgDer.dataUrl, 'PNG', x, y, w, h);
+          doc.addImage(imgDer.dataUrl, this.getImageFormat(imgDer.dataUrl), x, y, w, h);
         }
 
         // Línea divisoria superior de borde a borde (0 a 210mm) con el color del membrete
@@ -127,7 +131,11 @@ export class PdfService {
         doc.setLineWidth(0.8);
         doc.line(0, 33, 210, 33);
 
+        // RESTAURAR INMEDIATAMENTE EL ESTADO GRÁFICO PARA EL CUERPO (color negro y grosor normal)
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
         doc.setTextColor(0, 0, 0);
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.text("COTIZACIÓN DE ESCRITURA PÚBLICA", 105, 41, { align: "center" });
@@ -137,7 +145,11 @@ export class PdfService {
         doc.setFontSize(14);
         doc.text(nombreNotaria.toUpperCase(), 105, 20, { align: "center" });
 
+        // RESTAURAR ESTADO GRÁFICO PARA EL CUERPO
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
         doc.setTextColor(0, 0, 0);
+
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.text("COTIZACIÓN DE ESCRITURA PÚBLICA", 105, 30, { align: "center" });
@@ -214,6 +226,10 @@ export class PdfService {
         doc.setLineWidth(0.8);
         doc.line(0, 276, 210, 276);
 
+        // Restaurar drawColor y lineWidth
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
+
         if (direccion || distritoCiudad) {
           const pinDataUrl = await this.getPinIcon(hexColorMembrete);
           if (pinDataUrl) {
@@ -283,32 +299,38 @@ export class PdfService {
       return this.imageCache.get(url)!;
     }
 
+    // 1. Intento a través del proxy del Backend Worker (elimina cualquier bloqueo CORS del bucket)
+    try {
+      const proxyUrl = `${environment.apiUrl}/api/image-proxy?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      if (res.ok) {
+        const blob = await res.blob();
+        const entry = await this.blobToDataUrl(blob);
+        if (entry) {
+          this.imageCache.set(url, entry);
+          return entry;
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    // 2. Intento de descarga directa
     try {
       const res = await fetch(url, { mode: 'cors' });
       if (res.ok) {
         const blob = await res.blob();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-
-        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-          img.onerror = reject;
-          img.src = dataUrl;
-        });
-
-        const entry = { dataUrl, ...dimensions };
-        this.imageCache.set(url, entry);
-        return entry;
+        const entry = await this.blobToDataUrl(blob);
+        if (entry) {
+          this.imageCache.set(url, entry);
+          return entry;
+        }
       }
     } catch {
-      // Intento alternativo con Image y Canvas
+      // Fallback
     }
 
+    // 3. Intento vía HTMLImageElement con canvas
     try {
       const entry = await new Promise<{ dataUrl: string; width: number; height: number }>((resolve, reject) => {
         const img = new Image();
@@ -340,6 +362,37 @@ export class PdfService {
       console.warn('No se pudo cargar la imagen del membrete:', url, err);
       return null;
     }
+  }
+
+  private blobToDataUrl(blob: Blob): Promise<{ dataUrl: string; width: number; height: number } | null> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        const img = new Image();
+        img.onload = () => {
+          resolve({
+            dataUrl,
+            width: img.naturalWidth,
+            height: img.naturalHeight
+          });
+        };
+        img.onerror = () => resolve(null);
+        img.src = dataUrl;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  private getImageFormat(dataUrl: string): string {
+    if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) {
+      return 'JPEG';
+    }
+    if (dataUrl.startsWith('data:image/webp')) {
+      return 'WEBP';
+    }
+    return 'PNG';
   }
 
   private async getPinIcon(hexColor: string): Promise<string> {
