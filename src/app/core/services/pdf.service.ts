@@ -41,7 +41,8 @@ export class PdfService {
         b = parseInt(result[3], 16);
       }
 
-      const hexColorMembrete = ctx?.perfil.color_membrete?.trim() || '#002855';
+      const rawHexMembrete = ctx?.perfil.color_membrete?.trim() || '#002855';
+      const hexColorMembrete = rawHexMembrete.startsWith('#') ? rawHexMembrete : `#${rawHexMembrete}`;
       let rM = 0, gM = 40, bM = 85;
       const resultM = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexColorMembrete);
       if (resultM) {
@@ -224,8 +225,8 @@ export class PdfService {
       if (tieneMembreteInferior) {
         // Línea divisoria inferior de borde a borde (0 a 210mm) con el color del membrete
         doc.setDrawColor(rM, gM, bM);
-        doc.setLineWidth(0.6);
-        doc.line(0, 278.5, 210, 278.5);
+        doc.setLineWidth(0.4);
+        doc.line(0, 278.8, 210, 278.8);
 
         // Restaurar drawColor y lineWidth
         doc.setDrawColor(0, 0, 0);
@@ -234,41 +235,40 @@ export class PdfService {
         if (direccion || distritoCiudad) {
           const pinDataUrl = await this.getPinIcon(hexColorMembrete);
           if (pinDataUrl) {
-            doc.addImage(pinDataUrl, 'PNG', 8, 281.5, 3.8, 3.8);
+            doc.addImage(pinDataUrl, 'PNG', 7.5, 282.0, 4.1, 4.8);
           }
 
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(8.5);
+          doc.setFont("times", "normal");
+          doc.setFontSize(12.5);
           doc.setTextColor(rM, gM, bM);
 
+          const textX = pinDataUrl ? 13.0 : 7.5;
           if (direccion) {
-            doc.text(direccion, pinDataUrl ? 13.5 : 8, 284.5);
+            doc.text(direccion, textX, 285.8);
           }
           if (distritoCiudad) {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
-            doc.setTextColor(rM, gM, bM);
-            doc.text(distritoCiudad, pinDataUrl ? 13.5 : 8, direccion ? 288.5 : 284.5);
+            doc.text(distritoCiudad, textX, direccion ? 290.5 : 285.8);
           }
         }
 
         if (telefono) {
           const phoneDataUrl = await this.getPhoneIcon(hexColorMembrete);
-          const txtTel = `: ${telefono}`;
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(8.5);
+          const telClean = telefono.startsWith(':') ? telefono.substring(1).trim() : telefono;
+          const txtTel = `: ${telClean}`;
+          doc.setFont("times", "normal");
+          doc.setFontSize(12.5);
           doc.setTextColor(rM, gM, bM);
 
           const txtWidth = doc.getTextWidth(txtTel);
-          const iconW = 3.8;
-          const gap = 1;
+          const iconW = 5.0;
+          const gap = 1.0;
           const totalW = (phoneDataUrl ? iconW + gap : 0) + txtWidth;
-          const startX = 202 - totalW;
+          const startX = 199.0 - totalW;
 
           if (phoneDataUrl) {
-            doc.addImage(phoneDataUrl, 'PNG', startX, 281.5, iconW, iconW);
+            doc.addImage(phoneDataUrl, 'PNG', startX, 281.6, iconW, iconW);
           }
-          doc.text(txtTel, startX + (phoneDataUrl ? iconW + gap : 0), 284.5);
+          doc.text(txtTel, startX + (phoneDataUrl ? iconW + gap : 0), 285.8);
         }
       }
 
@@ -397,33 +397,35 @@ export class PdfService {
   }
 
   private async getPinIcon(hexColor: string): Promise<string> {
-    if (this.pinIconCache.has(hexColor)) return this.pinIconCache.get(hexColor)!;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${hexColor}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>`;
-    const dataUrl = await this.svgToDataUrl(svg);
-    this.pinIconCache.set(hexColor, dataUrl);
+    const validHex = hexColor.startsWith('#') ? hexColor : `#${hexColor}`;
+    if (this.pinIconCache.has(validHex)) return this.pinIconCache.get(validHex)!;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 28"><path fill="${validHex}" d="M12 1.5C7.3 1.5 3.5 5.3 3.5 10c0 6.2 8.5 16.5 8.5 16.5s8.5-10.3 8.5-16.5c0-4.7-3.8-8.5-8.5-8.5zm0 12.5a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>`;
+    const dataUrl = await this.svgToDataUrl(svg, 120, 140);
+    this.pinIconCache.set(validHex, dataUrl);
     return dataUrl;
   }
 
   private async getPhoneIcon(hexColor: string): Promise<string> {
-    if (this.phoneIconCache.has(hexColor)) return this.phoneIconCache.get(hexColor)!;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="${hexColor}"/><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="#ffffff"/></svg>`;
-    const dataUrl = await this.svgToDataUrl(svg);
-    this.phoneIconCache.set(hexColor, dataUrl);
+    const validHex = hexColor.startsWith('#') ? hexColor : `#${hexColor}`;
+    if (this.phoneIconCache.has(validHex)) return this.phoneIconCache.get(validHex)!;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${validHex}" d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/><path fill="#ffffff" d="M17.52 14.33c-.29-.14-1.74-.86-2.01-.96-.27-.1-.47-.14-.67.14-.2.29-.77.96-.94 1.16-.17.2-.34.22-.63.08-.29-.14-1.22-.45-2.33-1.44-.86-.77-1.44-1.72-1.61-2.01-.17-.29-.02-.45.13-.59.13-.13.29-.34.43-.51.14-.17.19-.29.29-.48.1-.2.05-.37-.02-.51-.08-.14-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.29-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.09 4.49.71.31 1.27.49 1.7.63.71.23 1.36.2 1.87.12.57-.09 1.74-.71 1.98-1.4.24-.69.24-1.28.17-1.4-.07-.12-.27-.19-.56-.33z"/></svg>`;
+    const dataUrl = await this.svgToDataUrl(svg, 128, 128);
+    this.phoneIconCache.set(validHex, dataUrl);
     return dataUrl;
   }
 
-  private svgToDataUrl(svgString: string, size = 64): Promise<string> {
+  private svgToDataUrl(svgString: string, width = 128, height = 128): Promise<string> {
     return new Promise((resolve) => {
       const img = new Image();
       const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.drawImage(img, 0, 0, size, size);
+          ctx.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/png'));
         } else {
           resolve('');
