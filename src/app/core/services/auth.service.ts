@@ -24,6 +24,12 @@ export interface NotariaPerfil {
   ruc?: string;
   color_marca: string;
   logo_url: string;
+  direccion?: string;
+  distrito_ciudad?: string;
+  telefono_contacto?: string;
+  membrete_izquierdo_url?: string;
+  membrete_centro_url?: string;
+  membrete_derecho_url?: string;
 }
 
 export type UserRole = 'superadmin' | 'titular' | 'admin' | 'abogado';

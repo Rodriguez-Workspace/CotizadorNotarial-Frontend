@@ -12,13 +12,17 @@ export class PdfService {
 
   constructor() { }
 
-  generarPdfMulti(
+  private imageCache = new Map<string, { dataUrl: string; width: number; height: number }>();
+  private pinIconDataUrl: string | null = null;
+  private phoneIconDataUrl: string | null = null;
+
+  async generarPdfMulti(
     items: CotizacionItem[], 
     fechaString: string, 
     incluirRequisitos: boolean,
     fechaObj: Date,
     referencia?: string
-  ) {
+  ): Promise<void> {
     if (!items || items.length === 0) return;
 
     try {
@@ -54,15 +58,87 @@ export class PdfService {
       });
       const requisitosDeduplicados = Array.from(reqsMap.values());
 
-      doc.setTextColor(r, g, b);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text(nombreNotaria.toUpperCase(), 105, 20, { align: "center" });
+      // ─── Membrete Superior Condicional ────────────────────────────
+      const tieneMembreteSuperior = Boolean(
+        ctx?.perfil.membrete_izquierdo_url || 
+        ctx?.perfil.membrete_centro_url || 
+        ctx?.perfil.membrete_derecho_url
+      );
 
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(11);
-      doc.text("COTIZACIÓN DE ESCRITURA PÚBLICA", 105, 30, { align: "center" });
+      if (tieneMembreteSuperior) {
+        const [imgIzq, imgCentro, imgDer] = await Promise.all([
+          ctx?.perfil.membrete_izquierdo_url ? this.loadImageDataUrl(ctx.perfil.membrete_izquierdo_url) : Promise.resolve(null),
+          ctx?.perfil.membrete_centro_url ? this.loadImageDataUrl(ctx.perfil.membrete_centro_url) : Promise.resolve(null),
+          ctx?.perfil.membrete_derecho_url ? this.loadImageDataUrl(ctx.perfil.membrete_derecho_url) : Promise.resolve(null)
+        ]);
 
+        if (imgIzq) {
+          const maxW = 24, maxH = 22;
+          const ratio = imgIzq.width / imgIzq.height;
+          let w = maxW, h = maxH;
+          if (ratio >= 1) {
+            h = Math.min(maxH, w / ratio);
+          } else {
+            w = Math.min(maxW, h * ratio);
+          }
+          const y = 9 + (maxH - h) / 2;
+          doc.addImage(imgIzq.dataUrl, 'PNG', 15, y, w, h);
+        }
+
+        if (imgCentro) {
+          const maxW = 100, maxH = 20;
+          const ratio = imgCentro.width / imgCentro.height;
+          let w = maxW, h = maxH;
+          if (ratio > (maxW / maxH)) {
+            h = w / ratio;
+          } else {
+            w = h * ratio;
+          }
+          const x = 105 - (w / 2);
+          const y = 10 + (maxH - h) / 2;
+          doc.addImage(imgCentro.dataUrl, 'PNG', x, y, w, h);
+        } else {
+          doc.setTextColor(r, g, b);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(14);
+          doc.text(nombreNotaria.toUpperCase(), 105, 20, { align: "center" });
+        }
+
+        if (imgDer) {
+          const maxW = 24, maxH = 22;
+          const ratio = imgDer.width / imgDer.height;
+          let w = maxW, h = maxH;
+          if (ratio >= 1) {
+            h = Math.min(maxH, w / ratio);
+          } else {
+            w = Math.min(maxW, h * ratio);
+          }
+          const x = 195 - w;
+          const y = 9 + (maxH - h) / 2;
+          doc.addImage(imgDer.dataUrl, 'PNG', x, y, w, h);
+        }
+
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.4);
+        doc.line(15, 33, 195, 33);
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("COTIZACIÓN DE ESCRITURA PÚBLICA", 105, 41, { align: "center" });
+      } else {
+        doc.setTextColor(r, g, b);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        doc.text(nombreNotaria.toUpperCase(), 105, 20, { align: "center" });
+
+        doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("COTIZACIÓN DE ESCRITURA PÚBLICA", 105, 30, { align: "center" });
+      }
+
+      // ─── Cuerpo del Documento (Intacto) ───────────────────────────
       if (referencia) {
         doc.setFontSize(9);
         doc.text(`REF: ${referencia.toUpperCase()}`, 20, 50);
@@ -120,6 +196,58 @@ export class PdfService {
       doc.setFont("helvetica", "bold");
       doc.text(fechaString.toUpperCase() + " (VÁLIDO POR 90 DÍAS)", 20, yPos + 15);
 
+      // ─── Membrete Inferior Condicional (Pie de Página) ───────────
+      const direccion = ctx?.perfil.direccion?.trim();
+      const distritoCiudad = ctx?.perfil.distrito_ciudad?.trim();
+      const telefono = ctx?.perfil.telefono_contacto?.trim();
+
+      const tieneMembreteInferior = Boolean(direccion || distritoCiudad || telefono);
+
+      if (tieneMembreteInferior) {
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.4);
+        doc.line(15, 276, 195, 276);
+
+        if (direccion || distritoCiudad) {
+          const pinDataUrl = await this.getPinIcon();
+          if (pinDataUrl) {
+            doc.addImage(pinDataUrl, 'PNG', 15, 279, 3.8, 3.8);
+          }
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(17, 24, 39);
+
+          if (direccion) {
+            doc.text(direccion, pinDataUrl ? 20 : 15, 282.5);
+          }
+          if (distritoCiudad) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8);
+            doc.text(distritoCiudad, pinDataUrl ? 20 : 15, direccion ? 286.5 : 282.5);
+          }
+        }
+
+        if (telefono) {
+          const phoneDataUrl = await this.getPhoneIcon();
+          const txtTel = `: ${telefono}`;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(17, 24, 39);
+
+          const txtWidth = doc.getTextWidth(txtTel);
+          const iconW = 3.8;
+          const gap = 1;
+          const totalW = (phoneDataUrl ? iconW + gap : 0) + txtWidth;
+          const startX = 195 - totalW;
+
+          if (phoneDataUrl) {
+            doc.addImage(phoneDataUrl, 'PNG', startX, 279.5, iconW, iconW);
+          }
+          doc.text(txtTel, startX + (phoneDataUrl ? iconW + gap : 0), 282.5);
+        }
+      }
+
       const hh = String(fechaObj.getHours()).padStart(2, '0');
       const min = String(fechaObj.getMinutes()).padStart(2, '0');
       const horaCorta = `${hh}h${min}`;
@@ -140,6 +268,79 @@ export class PdfService {
       console.error('Error al generar PDF nativo:', e);
       Swal.fire('Error en PDF', 'Detalle técnico para el desarrollador: ' + (e.message || e.toString()), 'error');
     }
+  }
+
+  private async loadImageDataUrl(url: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
+    if (!url) return null;
+    if (this.imageCache.has(url)) {
+      return this.imageCache.get(url)!;
+    }
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const blob = await res.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+
+      const entry = { dataUrl, ...dimensions };
+      this.imageCache.set(url, entry);
+      return entry;
+    } catch (err) {
+      console.warn('No se pudo cargar la imagen del membrete:', url, err);
+      return null;
+    }
+  }
+
+  private async getPinIcon(): Promise<string> {
+    if (this.pinIconDataUrl) return this.pinIconDataUrl;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0f172a"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>`;
+    this.pinIconDataUrl = await this.svgToDataUrl(svg);
+    return this.pinIconDataUrl;
+  }
+
+  private async getPhoneIcon(): Promise<string> {
+    if (this.phoneIconDataUrl) return this.phoneIconDataUrl;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#0f172a"/><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="#ffffff"/></svg>`;
+    this.phoneIconDataUrl = await this.svgToDataUrl(svg);
+    return this.phoneIconDataUrl;
+  }
+
+  private svgToDataUrl(svgString: string, size = 64): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, size, size);
+          resolve(canvas.toDataURL('image/png'));
+        } else {
+          resolve('');
+        }
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve('');
+      };
+      img.src = url;
+    });
   }
 
   private sanitizarNombreArchivo(nombre: string): string {
