@@ -13,8 +13,8 @@ export class PdfService {
   constructor() { }
 
   private imageCache = new Map<string, { dataUrl: string; width: number; height: number }>();
-  private pinIconDataUrl: string | null = null;
-  private phoneIconDataUrl: string | null = null;
+  private pinIconCache = new Map<string, string>();
+  private phoneIconCache = new Map<string, string>();
 
   async generarPdfMulti(
     items: CotizacionItem[], 
@@ -38,6 +38,15 @@ export class PdfService {
         r = parseInt(result[1], 16);
         g = parseInt(result[2], 16);
         b = parseInt(result[3], 16);
+      }
+
+      const hexColorMembrete = ctx?.perfil.color_membrete?.trim() || '#002855';
+      let rM = 0, gM = 40, bM = 85;
+      const resultM = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hexColorMembrete);
+      if (resultM) {
+        rM = parseInt(resultM[1], 16);
+        gM = parseInt(resultM[2], 16);
+        bM = parseInt(resultM[3], 16);
       }
       
       const numFormat = (num: number) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -73,7 +82,7 @@ export class PdfService {
         ]);
 
         if (imgIzq) {
-          const maxW = 24, maxH = 22;
+          const maxW = 28, maxH = 22;
           const ratio = imgIzq.width / imgIzq.height;
           let w = maxW, h = maxH;
           if (ratio >= 1) {
@@ -86,7 +95,7 @@ export class PdfService {
         }
 
         if (imgCentro) {
-          const maxW = 100, maxH = 20;
+          const maxW = 100, maxH = 22;
           const ratio = imgCentro.width / imgCentro.height;
           let w = maxW, h = maxH;
           if (ratio > (maxW / maxH)) {
@@ -95,17 +104,12 @@ export class PdfService {
             w = h * ratio;
           }
           const x = 105 - (w / 2);
-          const y = 10 + (maxH - h) / 2;
+          const y = 9 + (maxH - h) / 2;
           doc.addImage(imgCentro.dataUrl, 'PNG', x, y, w, h);
-        } else {
-          doc.setTextColor(r, g, b);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(14);
-          doc.text(nombreNotaria.toUpperCase(), 105, 20, { align: "center" });
         }
 
         if (imgDer) {
-          const maxW = 24, maxH = 22;
+          const maxW = 28, maxH = 22;
           const ratio = imgDer.width / imgDer.height;
           let w = maxW, h = maxH;
           if (ratio >= 1) {
@@ -118,9 +122,10 @@ export class PdfService {
           doc.addImage(imgDer.dataUrl, 'PNG', x, y, w, h);
         }
 
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.4);
-        doc.line(15, 33, 195, 33);
+        // Línea divisoria superior de borde a borde (0 a 210mm) con el color del membrete
+        doc.setDrawColor(rM, gM, bM);
+        doc.setLineWidth(0.8);
+        doc.line(0, 33, 210, 33);
 
         doc.setTextColor(0, 0, 0);
         doc.setFont("helvetica", "bold");
@@ -204,19 +209,20 @@ export class PdfService {
       const tieneMembreteInferior = Boolean(direccion || distritoCiudad || telefono);
 
       if (tieneMembreteInferior) {
-        doc.setDrawColor(0, 0, 0);
-        doc.setLineWidth(0.4);
-        doc.line(15, 276, 195, 276);
+        // Línea divisoria inferior de borde a borde (0 a 210mm) con el color del membrete
+        doc.setDrawColor(rM, gM, bM);
+        doc.setLineWidth(0.8);
+        doc.line(0, 276, 210, 276);
 
         if (direccion || distritoCiudad) {
-          const pinDataUrl = await this.getPinIcon();
+          const pinDataUrl = await this.getPinIcon(hexColorMembrete);
           if (pinDataUrl) {
             doc.addImage(pinDataUrl, 'PNG', 15, 279, 3.8, 3.8);
           }
 
           doc.setFont("helvetica", "bold");
           doc.setFontSize(8.5);
-          doc.setTextColor(17, 24, 39);
+          doc.setTextColor(rM, gM, bM);
 
           if (direccion) {
             doc.text(direccion, pinDataUrl ? 20 : 15, 282.5);
@@ -224,16 +230,17 @@ export class PdfService {
           if (distritoCiudad) {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(8);
+            doc.setTextColor(rM, gM, bM);
             doc.text(distritoCiudad, pinDataUrl ? 20 : 15, direccion ? 286.5 : 282.5);
           }
         }
 
         if (telefono) {
-          const phoneDataUrl = await this.getPhoneIcon();
+          const phoneDataUrl = await this.getPhoneIcon(hexColorMembrete);
           const txtTel = `: ${telefono}`;
           doc.setFont("helvetica", "bold");
           doc.setFontSize(8.5);
-          doc.setTextColor(17, 24, 39);
+          doc.setTextColor(rM, gM, bM);
 
           const txtWidth = doc.getTextWidth(txtTel);
           const iconW = 3.8;
@@ -277,24 +284,56 @@ export class PdfService {
     }
 
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const blob = await res.blob();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      const res = await fetch(url, { mode: 'cors' });
+      if (res.ok) {
+        const blob = await res.blob();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
 
-      const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+          img.onerror = reject;
+          img.src = dataUrl;
+        });
+
+        const entry = { dataUrl, ...dimensions };
+        this.imageCache.set(url, entry);
+        return entry;
+      }
+    } catch {
+      // Intento alternativo con Image y Canvas
+    }
+
+    try {
+      const entry = await new Promise<{ dataUrl: string; width: number; height: number }>((resolve, reject) => {
         const img = new Image();
-        img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return reject(new Error('Canvas context unavailable'));
+            ctx.drawImage(img, 0, 0);
+            resolve({
+              dataUrl: canvas.toDataURL('image/png'),
+              width: img.naturalWidth,
+              height: img.naturalHeight
+            });
+          } catch (canvasErr) {
+            reject(canvasErr);
+          }
+        };
         img.onerror = reject;
-        img.src = dataUrl;
+        img.src = url;
       });
 
-      const entry = { dataUrl, ...dimensions };
       this.imageCache.set(url, entry);
       return entry;
     } catch (err) {
@@ -303,18 +342,20 @@ export class PdfService {
     }
   }
 
-  private async getPinIcon(): Promise<string> {
-    if (this.pinIconDataUrl) return this.pinIconDataUrl;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0f172a"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>`;
-    this.pinIconDataUrl = await this.svgToDataUrl(svg);
-    return this.pinIconDataUrl;
+  private async getPinIcon(hexColor: string): Promise<string> {
+    if (this.pinIconCache.has(hexColor)) return this.pinIconCache.get(hexColor)!;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${hexColor}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>`;
+    const dataUrl = await this.svgToDataUrl(svg);
+    this.pinIconCache.set(hexColor, dataUrl);
+    return dataUrl;
   }
 
-  private async getPhoneIcon(): Promise<string> {
-    if (this.phoneIconDataUrl) return this.phoneIconDataUrl;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="#0f172a"/><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="#ffffff"/></svg>`;
-    this.phoneIconDataUrl = await this.svgToDataUrl(svg);
-    return this.phoneIconDataUrl;
+  private async getPhoneIcon(hexColor: string): Promise<string> {
+    if (this.phoneIconCache.has(hexColor)) return this.phoneIconCache.get(hexColor)!;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="24" height="24" rx="5" fill="${hexColor}"/><path d="M6.62 10.79a15.053 15.053 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" fill="#ffffff"/></svg>`;
+    const dataUrl = await this.svgToDataUrl(svg);
+    this.phoneIconCache.set(hexColor, dataUrl);
+    return dataUrl;
   }
 
   private svgToDataUrl(svgString: string, size = 64): Promise<string> {
