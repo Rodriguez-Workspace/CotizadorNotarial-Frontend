@@ -83,7 +83,7 @@ export class PdfService {
         ]);
 
         if (imgIzq) {
-          const maxW = 28, maxH = 22;
+          const maxW = 18.5, maxH = 18;
           const ratio = imgIzq.width / imgIzq.height;
           const boxRatio = maxW / maxH;
           let w = maxW, h = maxH;
@@ -92,12 +92,13 @@ export class PdfService {
           } else {
             w = maxH * ratio;
           }
-          const y = 9 + (maxH - h) / 2;
-          doc.addImage(imgIzq.dataUrl, this.getImageFormat(imgIzq.dataUrl), 15, y, w, h);
+          const x = 27 + (maxW - w) / 2;
+          const y = 9.3 + (maxH - h) / 2;
+          doc.addImage(imgIzq.dataUrl, this.getImageFormat(imgIzq.dataUrl), x, y, w, h);
         }
 
         if (imgCentro) {
-          const maxW = 100, maxH = 22;
+          const maxW = 76, maxH = 17.5;
           const ratio = imgCentro.width / imgCentro.height;
           const boxRatio = maxW / maxH;
           let w = maxW, h = maxH;
@@ -107,12 +108,12 @@ export class PdfService {
             w = maxH * ratio;
           }
           const x = 105 - (w / 2);
-          const y = 9 + (maxH - h) / 2;
+          const y = 8.0 + (maxH - h) / 2;
           doc.addImage(imgCentro.dataUrl, this.getImageFormat(imgCentro.dataUrl), x, y, w, h);
         }
 
         if (imgDer) {
-          const maxW = 28, maxH = 22;
+          const maxW = 20.5, maxH = 21.8;
           const ratio = imgDer.width / imgDer.height;
           const boxRatio = maxW / maxH;
           let w = maxW, h = maxH;
@@ -121,15 +122,15 @@ export class PdfService {
           } else {
             w = maxH * ratio;
           }
-          const x = 195 - w;
-          const y = 9 + (maxH - h) / 2;
+          const x = 160 + (maxW - w) / 2;
+          const y = 6.5 + (maxH - h) / 2;
           doc.addImage(imgDer.dataUrl, this.getImageFormat(imgDer.dataUrl), x, y, w, h);
         }
 
         // Línea divisoria superior de borde a borde (0 a 210mm) con el color del membrete
         doc.setDrawColor(rM, gM, bM);
-        doc.setLineWidth(0.8);
-        doc.line(0, 33, 210, 33);
+        doc.setLineWidth(0.6);
+        doc.line(0, 32.5, 210, 32.5);
 
         // RESTAURAR INMEDIATAMENTE EL ESTADO GRÁFICO PARA EL CUERPO (color negro y grosor normal)
         doc.setDrawColor(0, 0, 0);
@@ -223,8 +224,8 @@ export class PdfService {
       if (tieneMembreteInferior) {
         // Línea divisoria inferior de borde a borde (0 a 210mm) con el color del membrete
         doc.setDrawColor(rM, gM, bM);
-        doc.setLineWidth(0.8);
-        doc.line(0, 276, 210, 276);
+        doc.setLineWidth(0.6);
+        doc.line(0, 278.5, 210, 278.5);
 
         // Restaurar drawColor y lineWidth
         doc.setDrawColor(0, 0, 0);
@@ -233,7 +234,7 @@ export class PdfService {
         if (direccion || distritoCiudad) {
           const pinDataUrl = await this.getPinIcon(hexColorMembrete);
           if (pinDataUrl) {
-            doc.addImage(pinDataUrl, 'PNG', 15, 279, 3.8, 3.8);
+            doc.addImage(pinDataUrl, 'PNG', 8, 281.5, 3.8, 3.8);
           }
 
           doc.setFont("helvetica", "bold");
@@ -241,13 +242,13 @@ export class PdfService {
           doc.setTextColor(rM, gM, bM);
 
           if (direccion) {
-            doc.text(direccion, pinDataUrl ? 20 : 15, 282.5);
+            doc.text(direccion, pinDataUrl ? 13.5 : 8, 284.5);
           }
           if (distritoCiudad) {
             doc.setFont("helvetica", "normal");
             doc.setFontSize(8);
             doc.setTextColor(rM, gM, bM);
-            doc.text(distritoCiudad, pinDataUrl ? 20 : 15, direccion ? 286.5 : 282.5);
+            doc.text(distritoCiudad, pinDataUrl ? 13.5 : 8, direccion ? 288.5 : 284.5);
           }
         }
 
@@ -262,12 +263,12 @@ export class PdfService {
           const iconW = 3.8;
           const gap = 1;
           const totalW = (phoneDataUrl ? iconW + gap : 0) + txtWidth;
-          const startX = 195 - totalW;
+          const startX = 202 - totalW;
 
           if (phoneDataUrl) {
-            doc.addImage(phoneDataUrl, 'PNG', startX, 279.5, iconW, iconW);
+            doc.addImage(phoneDataUrl, 'PNG', startX, 281.5, iconW, iconW);
           }
-          doc.text(txtTel, startX + (phoneDataUrl ? iconW + gap : 0), 282.5);
+          doc.text(txtTel, startX + (phoneDataUrl ? iconW + gap : 0), 284.5);
         }
       }
 
