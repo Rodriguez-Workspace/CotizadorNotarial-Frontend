@@ -59,6 +59,25 @@ export class PdfService {
 
       const nombresActos = items.map(it => it.acto.nombre).join(', ');
 
+      // Determinar título principal según la(s) categoría(s) de los actos
+      const categoriasSet = new Set<string>();
+      items.forEach(it => {
+        const catNom = it.acto.categoria_nombre?.trim();
+        if (catNom) {
+          categoriasSet.add(catNom);
+        }
+      });
+      const categoriasList = Array.from(categoriasSet);
+      let tituloPrincipal = 'COTIZACIÓN DE ESCRITURA PÚBLICA';
+      if (categoriasList.length > 0) {
+        const formatCat = (c: string) => {
+          const upper = c.trim().toUpperCase();
+          return upper.startsWith('DE ') ? upper.substring(3).trim() : upper;
+        };
+        const catsTexto = categoriasList.map(formatCat).join(' Y ');
+        tituloPrincipal = `COTIZACIÓN DE ${catsTexto}`;
+      }
+
       // 1. Todas las bases primero (sin duplicados, en orden de aparición de los actos)
       const basesMap = new Map<string, string>();
       // 2. Después los específicos de cada acto (sin duplicados)
@@ -161,8 +180,9 @@ export class PdfService {
         doc.setTextColor(0, 0, 0);
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.text("COTIZACIÓN DE ESCRITURA PÚBLICA", 105, 41, { align: "center" });
+        const titleFontSizeWithHeader = doc.getTextWidth(tituloPrincipal) > 170 ? 9.5 : 11;
+        doc.setFontSize(titleFontSizeWithHeader);
+        doc.text(tituloPrincipal, 105, 41, { align: "center" });
       } else {
         doc.setTextColor(r, g, b);
         doc.setFont("helvetica", "bold");
@@ -175,8 +195,9 @@ export class PdfService {
         doc.setTextColor(0, 0, 0);
 
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        doc.text("COTIZACIÓN DE ESCRITURA PÚBLICA", 105, 30, { align: "center" });
+        const titleFontSizeNoHeader = doc.getTextWidth(tituloPrincipal) > 170 ? 9.5 : 11;
+        doc.setFontSize(titleFontSizeNoHeader);
+        doc.text(tituloPrincipal, 105, 30, { align: "center" });
       }
 
       // ─── Cuerpo del Documento (Intacto) ───────────────────────────

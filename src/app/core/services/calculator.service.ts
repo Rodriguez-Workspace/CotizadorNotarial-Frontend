@@ -19,6 +19,8 @@ export interface TarifarioActo {
   tasa_registral_por_mil: number;
   requisitos: Requisito[];
   rangos: Rango[];
+  categoria_nombre?: string;
+  categoria_id?: string;
 }
 
 export interface ResultadoCalculo {
