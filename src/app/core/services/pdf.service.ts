@@ -57,8 +57,6 @@ export class PdfService {
       const granTotalRegistral = items.reduce((sum, it) => sum + it.costoRegistralFinal, 0);
       const granTotalPagar = items.reduce((sum, it) => sum + it.totalFinal, 0);
 
-      const nombresActos = items.map(it => it.acto.nombre).join(', ');
-
       // Determinar título principal según la(s) categoría(s) de los actos
       const categoriasSet = new Set<string>();
       items.forEach(it => {
@@ -207,7 +205,7 @@ export class PdfService {
       }
 
       doc.setFontSize(9);
-      const actoTextoCompleto = `1.- ESCRITURA PÚBLICA DE ${nombresActos.toUpperCase()}`;
+      const actoTextoCompleto = this.construirLineaDescriptivaActos(items);
       const lineasActo = doc.splitTextToSize(actoTextoCompleto, 170);
       doc.text(lineasActo, 20, 70);
 
@@ -481,6 +479,87 @@ export class PdfService {
       };
       img.src = url;
     });
+  }
+
+  private singularizarFrase(frase: string): string {
+    return frase.trim().split(/\s+/).map(palabra => {
+      const w = palabra.toUpperCase();
+      if (['DE', 'DEL', 'LA', 'LAS', 'EL', 'LOS', 'EN', 'POR', 'Y', 'O', 'NO', 'PARA', 'CON'].includes(w)) return w;
+      if (w.endsWith('CES') && w.length > 4) return w.slice(0, -3) + 'Z';
+      if (w.endsWith('ES') && w.length > 3) {
+        if (w.endsWith('CIONES')) return w.slice(0, -6) + 'CIÓN';
+        if (w.endsWith('SIONES')) return w.slice(0, -6) + 'SIÓN';
+        if (w.endsWith('LES')) return w.slice(0, -2);
+        if (w.endsWith('RES')) return w.slice(0, -2);
+        if (w.endsWith('NES')) return w.slice(0, -2);
+        if (w.endsWith('DES')) return w.slice(0, -2);
+      }
+      if (w.endsWith('AS') && w.length > 3) return w.slice(0, -1);
+      if (w.endsWith('OS') && w.length > 3) return w.slice(0, -1);
+      if (w.endsWith('S') && !w.endsWith('IS') && !w.endsWith('US') && w.length > 3) return w.slice(0, -1);
+      return w;
+    }).join(' ');
+  }
+
+  private unirConY(elementos: string[]): string {
+    if (elementos.length === 0) return '';
+    if (elementos.length === 1) return elementos[0];
+    if (elementos.length === 2) return `${elementos[0]} Y ${elementos[1]}`;
+    return `${elementos.slice(0, -1).join(', ')} Y ${elementos[elementos.length - 1]}`;
+  }
+
+  private formatearGrupoCategoria(catNombre: string, actosNombres: string[]): string {
+    const rawUpper = catNombre.trim().toUpperCase();
+    const catLimpia = rawUpper.startsWith('DE ') ? rawUpper.substring(3).trim() : rawUpper;
+    const catSingular = this.singularizarFrase(catLimpia);
+
+    const conectores = ['DE', 'DEL', 'LA', 'LAS', 'EL', 'LOS', 'EN', 'POR', 'PARA', 'CON', 'SIN', 'SOBRE', 'Y', 'O', 'NO'];
+    const palabrasClaveCat = catSingular
+      .split(/\s+/)
+      .map(p => p.trim())
+      .filter(p => p.length >= 4 && !conectores.includes(p));
+
+    const esContenedorGenerico = ['ASUNTO', 'TRAMITE', 'TRÁMITE', 'PROCESO', 'DILIGENCIA', 'OTRO', 'VARIOS'].some(c =>
+      rawUpper.includes(c)
+    );
+
+    const prefixDe = `${catSingular} DE `;
+
+    const actosLimpios = actosNombres.map(a => {
+      let t = a.trim().toUpperCase();
+      if (t.startsWith(prefixDe)) {
+        t = t.substring(prefixDe.length).trim();
+      }
+      return t;
+    });
+
+    const algunActoTieneClave = palabrasClaveCat.some(clave =>
+      actosLimpios.some(acto => acto.includes(clave))
+    );
+
+    if (esContenedorGenerico || algunActoTieneClave) {
+      return this.unirConY(actosLimpios);
+    }
+
+    return `${catSingular} DE ${this.unirConY(actosLimpios)}`;
+  }
+
+  private construirLineaDescriptivaActos(items: CotizacionItem[]): string {
+    const gruposMap = new Map<string, string[]>();
+    items.forEach(it => {
+      const cat = it.acto.categoria_nombre?.trim() || 'Escrituras Públicas';
+      if (!gruposMap.has(cat)) {
+        gruposMap.set(cat, []);
+      }
+      gruposMap.get(cat)!.push(it.acto.nombre.trim());
+    });
+
+    const fragmentosGrupos: string[] = [];
+    for (const [catNombre, actosNombres] of gruposMap.entries()) {
+      fragmentosGrupos.push(this.formatearGrupoCategoria(catNombre, actosNombres));
+    }
+
+    return `1.- ${fragmentosGrupos.join(' / ')}`;
   }
 
   private sanitizarNombreArchivo(nombre: string): string {
