@@ -22,7 +22,8 @@ export class PdfService {
     fechaString: string, 
     incluirRequisitos: boolean,
     fechaObj: Date,
-    referencia?: string
+    referencia?: string,
+    incluirReferenciaPdf: boolean = true
   ): Promise<void> {
     if (!items || items.length === 0) return;
 
@@ -199,9 +200,11 @@ export class PdfService {
       }
 
       // ─── Cuerpo del Documento (Intacto) ───────────────────────────
-      if (referencia) {
-        doc.setFontSize(9);
-        doc.text(`REF: ${referencia.toUpperCase()}`, 20, 50);
+      doc.setFontSize(9);
+      if (incluirReferenciaPdf && referencia && referencia.trim()) {
+        doc.text(`REF: ${referencia.trim().toUpperCase()}`, 20, 50);
+      } else {
+        doc.text('REF: KARDEX ........', 20, 50);
       }
 
       doc.setFontSize(9);

@@ -107,13 +107,30 @@
         </div>
       </div>
 
-      <!-- Referencia -->
-      <div class="flex flex-col gap-2">
-        <label class="font-semibold text-dark text-sm">Referencia Interna (Cliente/Kardex)</label>
-        <input type="text" formControlName="referencia" placeholder="Ej: Juan Perez - K1234"
-          (input)="sanitizarReferencia($event)"
-          class="border border-neutral rounded-md p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+      <!-- Referencia y Switcher PDF -->
+      <div class="flex flex-col md:flex-row gap-4 items-start md:items-end">
+        <div class="flex-1 w-full flex flex-col gap-2">
+          <label class="font-semibold text-dark text-sm">Referencia Interna (Cliente/Kardex)</label>
+          <input type="text" formControlName="referencia" placeholder="Ej: Juan Perez - K1234"
+            (input)="sanitizarReferencia($event)"
+            class="border border-neutral rounded-md p-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+        </div>
+
+        <div class="w-full md:w-56 flex flex-col gap-2">
+          <label class="font-semibold text-dark text-sm">¿Agregar referencia al PDF?</label>
+          <app-switcher formControlName="incluirReferenciaPdf"
+            option1="NO" [value1]="false"
+            option2="SÍ" [value2]="true"></app-switcher>
+        </div>
       </div>
+      <p class="text-xs text-gray-500 italic -mt-2">
+        <span *ngIf="form.get('incluirReferenciaPdf')?.value">
+          * En el PDF saldrá: <strong>REF: {{ form.get('referencia')?.value ? (form.get('referencia')?.value | uppercase) : 'KARDEX ........' }}</strong>
+        </span>
+        <span *ngIf="!form.get('incluirReferenciaPdf')?.value">
+          * En el PDF saldrá: <strong>REF: KARDEX ........</strong> (para completar a mano el número de kardex de hasta 6 dígitos).
+        </span>
+      </p>
 
       <!-- Visualizador Requisitos -->
       <div *ngIf="actoSeleccionado && !actoSeleccionado.id.startsWith('CUSTOM_')" class="bg-blue-50 border border-blue-200 p-4 rounded-md flex flex-col gap-2 mt-4">

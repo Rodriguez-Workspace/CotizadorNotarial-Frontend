@@ -41,6 +41,7 @@ export interface CotizacionItem {
   costoNotarialFinal: number;
   costoRegistralFinal: number;
   totalFinal: number;
+  incluirReferenciaPdf?: boolean;
 }
 
 @Injectable({

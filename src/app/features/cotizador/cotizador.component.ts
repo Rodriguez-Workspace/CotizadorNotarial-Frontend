@@ -69,6 +69,7 @@ export class CotizadorComponent implements OnInit {
       importeTotal: [null, [Validators.required, Validators.min(0.01)]],
       valoresIndividuales: this.fb.array([]),
       referencia: [''],
+      incluirReferenciaPdf: [true],
       requisitosPersonalizados: this.fb.array([])
     });
   }
@@ -95,7 +96,7 @@ export class CotizadorComponent implements OnInit {
     
     let lastCalcState = '';
     this.form.valueChanges.subscribe(val => {
-      const { referencia, ...calcData } = val;
+      const { referencia, incluirReferenciaPdf, ...calcData } = val;
       const currentState = JSON.stringify(calcData);
       if (currentState !== lastCalcState) {
         lastCalcState = currentState;
@@ -186,6 +187,7 @@ export class CotizadorComponent implements OnInit {
       importeAgrupado: this.form.value.importeTotal,
       importesIndividuales: this.form.value.valoresIndividuales,
       referencia: this.form.value.referencia,
+      incluirReferenciaPdf: Boolean(this.form.value.incluirReferenciaPdf),
       costoNotarialFinal: Number(this.notarialEditCtrl.value) || 0,
       costoRegistralFinal: Number(this.registralEditCtrl.value) || 0,
       totalFinal: this.totalActualEditado
@@ -308,6 +310,7 @@ export class CotizadorComponent implements OnInit {
     if (!this.resultados || !this.actoSeleccionado) return;
     // Fix: capturar fecha/hora en el instante del clic, no al cargar la página
     const ahora = new Date();
+    const incluirRef = Boolean(this.form.value.incluirReferenciaPdf);
     const item: CotizacionItem = {
       id: Date.now().toString(),
       acto: this.getActoFinal(),
@@ -319,7 +322,8 @@ export class CotizadorComponent implements OnInit {
       referencia: this.form.value.referencia,
       costoNotarialFinal: Number(this.notarialEditCtrl.value) || 0,
       costoRegistralFinal: Number(this.registralEditCtrl.value) || 0,
-      totalFinal: this.totalActualEditado
+      totalFinal: this.totalActualEditado,
+      incluirReferenciaPdf: incluirRef
     };
 
     this.pdfSvc.generarPdfMulti(
@@ -327,7 +331,8 @@ export class CotizadorComponent implements OnInit {
       obtenerFechaFormateadaLetras(ahora),
       conRequisitos,
       ahora,
-      this.form.value.referencia || ''
+      this.form.value.referencia || '',
+      incluirRef
     );
   }
 
@@ -335,8 +340,9 @@ export class CotizadorComponent implements OnInit {
     if (this.carrito.length === 0) return;
     // Fix: capturar fecha/hora en el instante del clic
     const ahora = new Date();
-    const refGlobal = this.form.value.referencia || '';
-    this.pdfSvc.generarPdfMulti(this.carrito, obtenerFechaFormateadaLetras(ahora), conRequisitos, ahora, refGlobal);
+    const refGlobal = this.referenciaGlobalCarrito?.trim() || this.form.value.referencia || '';
+    const incluirRef = Boolean(this.form.value.incluirReferenciaPdf);
+    this.pdfSvc.generarPdfMulti(this.carrito, obtenerFechaFormateadaLetras(ahora), conRequisitos, ahora, refGlobal, incluirRef);
   }
 
   // ─── Helpers para convertir CotizacionItem → CotizacionPayload ────────
