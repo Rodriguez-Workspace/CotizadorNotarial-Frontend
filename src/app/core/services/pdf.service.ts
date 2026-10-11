@@ -202,9 +202,9 @@ export class PdfService {
       // ─── Cuerpo del Documento (Intacto) ───────────────────────────
       doc.setFontSize(9);
       if (incluirReferenciaPdf && referencia && referencia.trim()) {
-        doc.text(`REF: ${referencia.trim().toUpperCase()}`, 20, 50);
+        doc.text(`REF: ${referencia.trim().toUpperCase()}`, 20, 63);
       } else {
-        doc.text('REF: KARDEX ........', 20, 50);
+        doc.text('REF: KARDEX ...........', 20, 63);
       }
 
       doc.setFontSize(9);

@@ -69,7 +69,7 @@ export class CotizadorComponent implements OnInit {
       importeTotal: [null, [Validators.required, Validators.min(0.01)]],
       valoresIndividuales: this.fb.array([]),
       referencia: [''],
-      incluirReferenciaPdf: [true],
+      incluirReferenciaPdf: [false],
       requisitosPersonalizados: this.fb.array([])
     });
   }
@@ -205,7 +205,8 @@ export class CotizadorComponent implements OnInit {
       cantidadBienes: 1,
       conoceValor: false,
       importeTotal: null,
-      referencia: ''
+      referencia: '',
+      incluirReferenciaPdf: false
     });
     this.requisitosPersonalizados.clear();
     this.updateFormArrays(false, 1);
