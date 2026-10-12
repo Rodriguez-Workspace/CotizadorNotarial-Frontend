@@ -40,29 +40,6 @@ import Swal from 'sweetalert2';
           </button>
         </div>
       </nav>
-
-      @if(auth.notariaContext$ | async; as ctx) {
-        @if(!ctx.spreadsheetId) {
-          <div class="bg-amber-600 text-white px-4 py-2.5 text-xs sm:text-sm flex flex-wrap items-center justify-between gap-3 shadow-md z-40 relative">
-            <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 flex-shrink-0 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-              </svg>
-              <span><strong>Atención:</strong> Tu usuario aún no tiene vinculada su hoja de Google Sheets para registrar cotizaciones.</span>
-            </div>
-            <button
-              type="button"
-              (click)="linkGoogleSheet()"
-              class="bg-white text-amber-900 hover:bg-amber-100 font-semibold px-3 py-1.5 rounded-lg shadow-sm transition text-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-              </svg>
-              <span>Crear mi Hoja de Google Sheets</span>
-            </button>
-          </div>
-        }
-      }
     }
     <main>
       <router-outlet></router-outlet>
@@ -70,8 +47,6 @@ import Swal from 'sweetalert2';
   `,
 })
 export class AppComponent implements OnInit {
-  isLinkingSheet = false;
-
   constructor(
     public auth: AuthService,
     public router: Router,
@@ -164,10 +139,6 @@ export class AppComponent implements OnInit {
     });
   }
 
-
-  async linkGoogleSheet() {
-    await this.apiSvc.createGoogleSheetInteractive();
-  }
 
   logout() {
     this.auth.logout();
