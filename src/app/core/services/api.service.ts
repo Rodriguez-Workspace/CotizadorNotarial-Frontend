@@ -144,6 +144,12 @@ export class ApiService {
         const token = this.authSvc.getGoogleOAuthToken();
         if (token) {
           await this.initializeGoogleSheet(ctx, token);
+        } else if (!this.router.url.includes('/login')) {
+          setTimeout(() => {
+            if (this._tenant && !this._tenant.spreadsheetId) {
+              this.createGoogleSheetInteractive();
+            }
+          }, 1000);
         }
       }
       
@@ -266,39 +272,47 @@ export class ApiService {
     }
   }
 
+  private isCreatingSheet = false;
+
   /**
    * Intenta crear automáticamente la hoja en Google Drive del abogado.
    * Si por alguna razón la API de Google da error o el usuario cancela,
    * abre automáticamente el asistente para vincular pegando el enlace.
    */
   async createGoogleSheetInteractive(): Promise<boolean> {
-    if (!this._tenant) {
-      await this.loadTenant();
-    }
-    const ctx = this._tenant;
-    if (!ctx) return false;
+    if (this.isCreatingSheet) return false;
+    this.isCreatingSheet = true;
+    try {
+      if (!this._tenant) {
+        await this.loadTenant();
+      }
+      const ctx = this._tenant;
+      if (!ctx) return false;
 
-    // 1. Solicitar token con Google Drive + Sheets
-    const token = await this.authSvc.linkGoogleDrive();
-    if (!token) {
-      // Si canceló la ventana de Google, ofrecer vincular por enlace
+      // 1. Solicitar token con Google Drive + Sheets
+      const token = await this.authSvc.linkGoogleDrive();
+      if (!token) {
+        // Si canceló la ventana de Google, ofrecer vincular por enlace
+        return await this.promptLinkSpreadsheet();
+      }
+
+      // 2. Intentar crear la hoja en su Drive
+      const success = await this.initializeGoogleSheet(ctx, token);
+      if (success) {
+        Swal.fire({
+          icon: 'success',
+          title: '¡Hoja creada con éxito!',
+          text: 'Se ha creado la hoja en tu Google Drive y ya está vinculada al cotizador.',
+          confirmButtonColor: '#1e40af'
+        });
+        return true;
+      }
+
+      // 3. Si falló la creación automática de Google, abrir el asistente de enlace
       return await this.promptLinkSpreadsheet();
+    } finally {
+      this.isCreatingSheet = false;
     }
-
-    // 2. Intentar crear la hoja en su Drive
-    const success = await this.initializeGoogleSheet(ctx, token);
-    if (success) {
-      Swal.fire({
-        icon: 'success',
-        title: '¡Hoja creada con éxito!',
-        text: 'Se ha creado la hoja en tu Google Drive y ya está vinculada al cotizador.',
-        confirmButtonColor: '#1e40af'
-      });
-      return true;
-    }
-
-    // 3. Si falló la creación automática de Google, abrir el asistente de enlace
-    return await this.promptLinkSpreadsheet();
   }
 
   /**
@@ -398,6 +412,12 @@ export class ApiService {
   // ─── Cotizacion ──────────────────────────────────────────────────────────
 
   async saveCotizacion(items: CotizacionPayload[]): Promise<void> {
+    if (!this._tenant?.spreadsheetId) {
+      const ok = await this.createGoogleSheetInteractive();
+      if (!ok) {
+        throw new Error('No se vinculó una hoja de Google Sheets para registrar la cotización.');
+      }
+    }
     await this.post('/api/cotizacion', { items });
   }
 
