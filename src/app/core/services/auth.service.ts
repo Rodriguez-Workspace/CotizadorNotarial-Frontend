@@ -124,11 +124,16 @@ export class AuthService {
   }
 
   async loginWithGoogle(): Promise<boolean> {
-    // Sin scopes adicionales — la Cuenta de Servicio de Google Cloud maneja Drive/Sheets desde el Backend
     const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
 
     try {
-      await signInWithPopup(this.auth, provider);
+      const result = await signInWithPopup(this.auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        this.setGoogleOAuthToken(credential.accessToken);
+      }
       this.router.navigate(['/cotizador']);
       return true;
     } catch (error: any) {
@@ -138,6 +143,24 @@ export class AuthService {
       }
       return false;
     }
+  }
+
+  async renovarSesionGoogle(): Promise<string | null> {
+    const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
+
+    try {
+      const result = await signInWithPopup(this.auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        this.setGoogleOAuthToken(credential.accessToken);
+        return credential.accessToken;
+      }
+    } catch (error) {
+      console.error('Error al renovar sesión de Google', error);
+    }
+    return null;
   }
 
   async logout(): Promise<void> {

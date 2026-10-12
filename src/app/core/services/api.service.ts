@@ -178,6 +178,10 @@ export class ApiService {
     }
   }
 
+  getSpreadsheetId(): string | null {
+    return this._tenant?.spreadsheetId || null;
+  }
+
   // ─── Tarifario ───────────────────────────────────────────────────────────
 
   async getTarifarioActos(): Promise<TarifarioActo[]> {
@@ -212,6 +216,57 @@ export class ApiService {
   // ─── Historial ───────────────────────────────────────────────────────────
 
   async getHistorial(limit = 100, offset = 0): Promise<HistorialResult> {
+    const oauthToken = this.authSvc.getGoogleOAuthToken();
+    const sheetId = this._tenant?.spreadsheetId;
+
+    if (oauthToken && sheetId) {
+      try {
+        const googleHeaders = new HttpHeaders({
+          'Authorization': `Bearer ${oauthToken}`,
+          'Content-Type': 'application/json'
+        });
+
+        // 1. Obtener conteo de filas leyendo columna A
+        const countUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:A`;
+        const countRes: any = await firstValueFrom(
+          this.http.get(countUrl, { headers: googleHeaders })
+        );
+        const totalRows = (countRes.values || []).length;
+
+        if (totalRows <= 1) return { data: [], hasMore: false };
+
+        // 2. Calcular rango de descarga (desde el final hacia arriba)
+        let endRow = totalRows - offset;
+        if (endRow < 2) return { data: [], hasMore: false };
+
+        let startRow = endRow - limit + 1;
+        if (startRow < 2) startRow = 2;
+
+        const hasMore = startRow > 2;
+        const range = `A${startRow}:I${endRow}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`;
+        const res: any = await firstValueFrom(
+          this.http.get(url, { headers: googleHeaders })
+        );
+
+        const rows: any[][] = res.values || [];
+        const parsed: CotizacionPayload[] = rows.map((r) => ({
+          fecha:             String(r[0] || ''),
+          referenciaInterna: String(r[1] || ''),
+          tipoActo:          String(r[2] || ''),
+          moneda:            String(r[3] || 'SOLES'),
+          cantidadBienes:    parseInt(r[4]) || 1,
+          costoNotarial:     parseFloat(r[5]) || 0,
+          costoRegistral:    parseFloat(r[6]) || 0,
+          totalPagar:        parseFloat(r[7]) || 0,
+        }));
+
+        return { data: parsed.reverse(), hasMore };
+      } catch (err: any) {
+        console.warn('[ApiService] Fallo lectura directa de Sheets, usando backend:', err);
+      }
+    }
+
     return this.get<HistorialResult>(`/api/historial?limit=${limit}&offset=${offset}`);
   }
 
