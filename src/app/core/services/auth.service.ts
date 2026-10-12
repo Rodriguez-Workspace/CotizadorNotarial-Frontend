@@ -124,19 +124,11 @@ export class AuthService {
   }
 
   async loginWithGoogle(): Promise<boolean> {
+    // Sin scopes adicionales — la Cuenta de Servicio de Google Cloud maneja Drive/Sheets desde el Backend
     const provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
-    provider.addScope('https://www.googleapis.com/auth/drive.file');
 
     try {
-      const result = await signInWithPopup(this.auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      const oauthToken = credential?.accessToken;
-
-      if (oauthToken) {
-        this.setGoogleOAuthToken(oauthToken);
-      }
-
+      await signInWithPopup(this.auth, provider);
       this.router.navigate(['/cotizador']);
       return true;
     } catch (error: any) {
