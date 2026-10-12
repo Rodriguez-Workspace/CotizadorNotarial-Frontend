@@ -115,10 +115,15 @@ export class OfflineService {
         toast: true, position: 'top-end', showConfirmButton: false, timer: 2500,
         icon: 'success', title: '¡Guardado exitosamente en Google Sheets!'
       });
-    } catch (e) {
+    } catch (e: any) {
+      console.error('[OfflineService] Error al guardar en Sheets:', e);
       // Save locally as fallback if the API call fails
       await this.saveToIndexedDB(items);
-      Swal.fire('Guardado Local', 'Se ha respaldado localmente y se intentará subir luego.', 'info');
+      const detail = e?.error?.detail || e?.error?.error || e?.message || '';
+      const text = detail
+        ? `Se ha respaldado localmente. Detalle: ${detail}`
+        : 'Se ha respaldado localmente y se intentará subir luego.';
+      Swal.fire('Guardado Local', text, 'warning');
     }
   }
 
