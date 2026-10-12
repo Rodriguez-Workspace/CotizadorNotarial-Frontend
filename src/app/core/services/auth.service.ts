@@ -101,6 +101,7 @@ export class AuthService {
    */
   async linkGoogleDrive(): Promise<string | null> {
     const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
     provider.addScope('https://www.googleapis.com/auth/drive.file');
     provider.setCustomParameters({ prompt: 'consent' });
 
@@ -124,6 +125,7 @@ export class AuthService {
 
   async loginWithGoogle(): Promise<boolean> {
     const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/spreadsheets');
     provider.addScope('https://www.googleapis.com/auth/drive.file');
 
     try {

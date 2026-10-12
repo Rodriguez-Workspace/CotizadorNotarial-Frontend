@@ -53,18 +53,12 @@ import Swal from 'sweetalert2';
             <button
               type="button"
               (click)="linkGoogleSheet()"
-              [disabled]="isLinkingSheet"
-              class="bg-white text-amber-900 hover:bg-amber-100 font-semibold px-3 py-1.5 rounded-lg shadow-sm transition text-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              class="bg-white text-amber-900 hover:bg-amber-100 font-semibold px-3 py-1.5 rounded-lg shadow-sm transition text-xs flex items-center gap-1.5 cursor-pointer"
             >
-              @if(isLinkingSheet) {
-                <span class="animate-spin inline-block w-3.5 h-3.5 border-2 border-amber-900 border-t-transparent rounded-full"></span>
-                <span>Conectando...</span>
-              } @else {
-                <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                </svg>
-                <span>Conectar con Google Drive</span>
-              }
+              <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+              </svg>
+              <span>Crear mi Hoja de Google Sheets</span>
             </button>
           </div>
         }
@@ -172,12 +166,7 @@ export class AppComponent implements OnInit {
 
 
   async linkGoogleSheet() {
-    this.isLinkingSheet = true;
-    try {
-      await this.apiSvc.linkGoogleDriveAndCreateSheet();
-    } finally {
-      this.isLinkingSheet = false;
-    }
+    await this.apiSvc.createGoogleSheetInteractive();
   }
 
   logout() {

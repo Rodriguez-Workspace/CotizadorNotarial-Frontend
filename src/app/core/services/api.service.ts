@@ -227,35 +227,154 @@ export class ApiService {
       return true;
     } catch (e: any) {
       console.error('Failed to initialize Google Sheet', e);
-      Swal.fire('Atención', 'No se pudo crear la hoja de cálculo automática: ' + (e?.message || e), 'warning');
+      return false;
+    }
+  }
+
+  // ─── Spreadsheet Management ───────────────────────────────────────────────
+
+  extractSpreadsheetId(input: string): string | null {
+    if (!input) return null;
+    const trimmed = input.trim();
+    const match = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]{20,80})/);
+    if (match) return match[1];
+    if (/^[a-zA-Z0-9_-]{20,80}$/.test(trimmed)) return trimmed;
+    return null;
+  }
+
+  async saveSpreadsheetId(input: string): Promise<boolean> {
+    const spreadsheetId = this.extractSpreadsheetId(input);
+    if (!spreadsheetId) {
+      Swal.fire('Error', 'El formato del ID o enlace de Google Sheets no es válido.', 'error');
+      return false;
+    }
+
+    try {
+      await this.post('/api/tenant/spreadsheet', { spreadsheetId });
+      if (this._tenant) {
+        this._tenant = {
+          ...this._tenant,
+          spreadsheetId
+        };
+        this.authSvc.setNotariaContext({ ...this._tenant });
+      }
+      return true;
+    } catch (err: any) {
+      console.error('Error guardando spreadsheetId:', err);
+      Swal.fire('Error', 'No se pudo guardar la hoja de cálculo: ' + (err?.message || err), 'error');
       return false;
     }
   }
 
   /**
-   * Permite al usuario autorizar interactivamente Google Drive si no se creó
-   * la hoja al iniciar sesión.
+   * Intenta crear automáticamente la hoja en Google Drive del abogado.
+   * Si por alguna razón la API de Google da error o el usuario cancela,
+   * abre automáticamente el asistente para vincular pegando el enlace.
    */
-  async linkGoogleDriveAndCreateSheet(): Promise<boolean> {
+  async createGoogleSheetInteractive(): Promise<boolean> {
     if (!this._tenant) {
       await this.loadTenant();
     }
-    if (!this._tenant) return false;
-    if (this._tenant.spreadsheetId) return true;
+    const ctx = this._tenant;
+    if (!ctx) return false;
 
+    // 1. Solicitar token con Google Drive + Sheets
     const token = await this.authSvc.linkGoogleDrive();
-    if (!token) return false;
+    if (!token) {
+      // Si canceló la ventana de Google, ofrecer vincular por enlace
+      return await this.promptLinkSpreadsheet();
+    }
 
-    const success = await this.initializeGoogleSheet(this._tenant, token);
+    // 2. Intentar crear la hoja en su Drive
+    const success = await this.initializeGoogleSheet(ctx, token);
     if (success) {
       Swal.fire({
         icon: 'success',
-        title: '¡Hoja de cálculo vinculada!',
-        text: 'Tu hoja de Google Sheets se ha creado en tu Google Drive y está conectada al cotizador.',
+        title: '¡Hoja creada con éxito!',
+        text: 'Se ha creado la hoja en tu Google Drive y ya está vinculada al cotizador.',
         confirmButtonColor: '#1e40af'
       });
+      return true;
     }
-    return success;
+
+    // 3. Si falló la creación automática de Google, abrir el asistente de enlace
+    return await this.promptLinkSpreadsheet();
+  }
+
+  /**
+   * Abre un modal con instrucciones claras para vincular la hoja de Google Sheets
+   * pegando su enlace y compartiéndola con la Service Account.
+   */
+  async promptLinkSpreadsheet(): Promise<boolean> {
+    if (!this._tenant) {
+      await this.loadTenant();
+    }
+    const ctx = this._tenant;
+    const saEmail = ctx?.serviceAccountEmail || 'cuenta de servicio';
+
+    const { value: urlOrId } = await Swal.fire({
+      title: 'Vincular Google Sheets',
+      html: `
+        <div style="text-align: left; font-size: 13px; color: #374151; line-height: 1.5;">
+          <p style="margin-bottom: 8px;">Para que el cotizador guarde tus cotizaciones en tu Google Sheet:</p>
+          <ol style="margin-left: 20px; list-style-type: decimal; margin-bottom: 12px; font-size: 12px;">
+            <li style="margin-bottom: 4px;">Crea una hoja en blanco en <a href="https://sheets.new" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: 600;">sheets.new</a></li>
+            <li style="margin-bottom: 4px;">Haz clic en <strong>Compartir</strong> (botón verde) y añade como <strong>Editor</strong> este correo:</li>
+          </ol>
+          <div style="background: #f3f4f6; border: 1px solid #e5e7eb; padding: 8px 10px; border-radius: 6px; font-family: monospace; font-size: 11px; word-break: break-all; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <span id="swal-sa-email" style="user-select: all; font-weight: 600; color: #1e40af;">${saEmail}</span>
+            <button type="button" id="copy-sa-btn" style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; flex-shrink: 0;">
+              Copiar
+            </button>
+          </div>
+          <p style="margin-bottom: 4px; font-size: 12px;">3. Pega aquí el enlace de tu hoja o su ID:</p>
+        </div>
+      `,
+      input: 'text',
+      inputValue: '',
+      inputPlaceholder: 'https://docs.google.com/spreadsheets/d/.../edit',
+      showCancelButton: true,
+      confirmButtonText: 'Vincular Hoja',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#1e40af',
+      cancelButtonColor: '#6b7280',
+      didOpen: () => {
+        const btn = document.getElementById('copy-sa-btn');
+        if (btn) {
+          btn.onclick = () => {
+            navigator.clipboard.writeText(saEmail);
+            btn.innerText = '¡Copiado!';
+            setTimeout(() => { btn.innerText = 'Copiar'; }, 2000);
+          };
+        }
+      },
+      preConfirm: (val) => {
+        if (!val || !val.trim()) {
+          Swal.showValidationMessage('Ingresa el enlace o ID de tu hoja de Google Sheets');
+          return false;
+        }
+        const id = this.extractSpreadsheetId(val);
+        if (!id) {
+          Swal.showValidationMessage('El enlace o ID no es válido (debe ser una URL de Google Sheets o un ID)');
+          return false;
+        }
+        return id;
+      }
+    });
+
+    if (urlOrId) {
+      const ok = await this.saveSpreadsheetId(urlOrId);
+      if (ok) {
+        Swal.fire({
+          icon: 'success',
+          title: '¡Hoja vinculada con éxito!',
+          text: 'Tus cotizaciones ahora se registrarán automáticamente en tu Google Sheet.',
+          confirmButtonColor: '#1e40af'
+        });
+        return true;
+      }
+    }
+    return false;
   }
 
   // ─── Tarifario ───────────────────────────────────────────────────────────
