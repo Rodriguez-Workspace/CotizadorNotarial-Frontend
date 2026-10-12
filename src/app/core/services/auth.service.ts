@@ -52,6 +52,9 @@ export class AuthService {
   private notariaContext = new BehaviorSubject<NotariaContext | null>(null);
   notariaContext$ = this.notariaContext.asObservable();
 
+  private googleOAuthToken = new BehaviorSubject<string | null>(sessionStorage.getItem('google_oauth_token'));
+  googleOAuthToken$ = this.googleOAuthToken.asObservable();
+
   constructor(private auth: Auth, private router: Router) {
     this.user$ = user(this.auth);
   }
@@ -63,6 +66,19 @@ export class AuthService {
   /** Expone el contexto para que lo establezca ApiService tras /api/tenant */
   setNotariaContext(ctx: NotariaContext | null): void {
     this.notariaContext.next(ctx);
+  }
+
+  setGoogleOAuthToken(token: string | null): void {
+    if (token) {
+      sessionStorage.setItem('google_oauth_token', token);
+    } else {
+      sessionStorage.removeItem('google_oauth_token');
+    }
+    this.googleOAuthToken.next(token);
+  }
+
+  getGoogleOAuthToken(): string | null {
+    return this.googleOAuthToken.value || sessionStorage.getItem('google_oauth_token');
   }
 
   /**
@@ -79,35 +95,60 @@ export class AuthService {
     }
   }
 
+  /**
+   * Solicita interactivamente permisos para Google Drive (drive.file)
+   * y guarda el token OAuth para inicializar o vincular la hoja de cálculo.
+   */
+  async linkGoogleDrive(): Promise<string | null> {
+    const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/drive.file');
+    provider.setCustomParameters({ prompt: 'consent' });
+
+    try {
+      const result = await signInWithPopup(this.auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const oauthToken = credential?.accessToken || null;
+
+      if (oauthToken) {
+        this.setGoogleOAuthToken(oauthToken);
+      }
+      return oauthToken;
+    } catch (error: any) {
+      console.error('Error linking Google Drive', error);
+      if (error?.code !== 'auth/popup-closed-by-user') {
+        Swal.fire('Error', 'No se pudo autorizar Google Drive: ' + (error?.message || error), 'error');
+      }
+      return null;
+    }
+  }
+
   async loginWithGoogle(): Promise<boolean> {
     const provider = new GoogleAuthProvider();
     provider.addScope('https://www.googleapis.com/auth/drive.file');
 
     try {
-      // El login dispara user$ que carga tenant en api.service.ts
       const result = await signInWithPopup(this.auth, provider);
-      
-      // Obtenemos el token de OAuth necesario por si acaso (para Drive)
       const credential = GoogleAuthProvider.credentialFromResult(result);
       const oauthToken = credential?.accessToken;
-      
+
       if (oauthToken) {
-        // Lo guardamos temporalmente en sessionStorage solo para la inicialización
-        sessionStorage.setItem('google_oauth_token', oauthToken);
+        this.setGoogleOAuthToken(oauthToken);
       }
-      
+
       this.router.navigate(['/cotizador']);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in login', error);
-      Swal.fire('Error', 'Ocurrió un error al intentar iniciar sesión con Google.', 'error');
+      if (error?.code !== 'auth/popup-closed-by-user') {
+        Swal.fire('Error', 'Ocurrió un error al intentar iniciar sesión con Google.', 'error');
+      }
       return false;
     }
   }
 
   async logout(): Promise<void> {
+    this.setGoogleOAuthToken(null);
     this.notariaContext.next(null);
-    sessionStorage.removeItem('google_oauth_token');
     await signOut(this.auth);
     this.router.navigate(['/login']);
   }

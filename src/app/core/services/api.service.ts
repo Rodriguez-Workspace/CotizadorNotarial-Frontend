@@ -77,6 +77,13 @@ export class ApiService {
         this.authSvc.setNotariaContext(null);
       }
     });
+
+    // Escuchar la llegada del token OAuth (ej. recién logueado o vinculado interactivamente)
+    this.authSvc.googleOAuthToken$.subscribe(async (token) => {
+      if (token && this._tenant && !this._tenant.spreadsheetId) {
+        await this.initializeGoogleSheet(this._tenant, token);
+      }
+    });
   }
 
   // ─── Auth headers ────────────────────────────────────────────────────────
@@ -132,9 +139,12 @@ export class ApiService {
       this._tenant = ctx;
       this.authSvc.setNotariaContext(ctx);
       
-      // Híbrido: Si no tiene hoja de cálculo, inicializarla
+      // Híbrido: Si no tiene hoja de cálculo y tenemos token en memoria/sessionStorage, inicializarla
       if (!ctx.spreadsheetId) {
-        await this.initializeGoogleSheet(ctx);
+        const token = this.authSvc.getGoogleOAuthToken();
+        if (token) {
+          await this.initializeGoogleSheet(ctx, token);
+        }
       }
       
       return ctx;
@@ -149,11 +159,11 @@ export class ApiService {
 
   // ─── Spreadsheet Initialization (Hybrid) ───────────────────────────────────
 
-  private async initializeGoogleSheet(ctx: NotariaContext): Promise<void> {
-    const oauthToken = sessionStorage.getItem('google_oauth_token');
+  async initializeGoogleSheet(ctx: NotariaContext, explicitToken?: string): Promise<boolean> {
+    const oauthToken = explicitToken || this.authSvc.getGoogleOAuthToken();
     if (!oauthToken) {
       console.warn('No hay token OAuth para crear el Excel.');
-      return;
+      return false;
     }
 
     try {
@@ -181,30 +191,71 @@ export class ApiService {
       });
       const createData = await createRes.json();
       const spreadsheetId = createData.spreadsheetId;
-      if (!spreadsheetId) throw new Error('No spreadsheetId created');
+      if (!spreadsheetId) {
+        console.error('Error creating spreadsheet:', createData);
+        throw new Error(createData?.error?.message || 'No se pudo crear la hoja en Google Sheets');
+      }
 
       // 2. Compartir con el Service Account del Backend
       const serviceAccountEmail = ctx.serviceAccountEmail;
       if (serviceAccountEmail) {
-        await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${oauthToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'user', role: 'writer', emailAddress: serviceAccountEmail })
-        });
+        try {
+          const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}/permissions`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${oauthToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'user', role: 'writer', emailAddress: serviceAccountEmail })
+          });
+          if (!permRes.ok) {
+            console.warn('Could not share sheet with service account:', await permRes.text());
+          }
+        } catch (shareErr) {
+          console.warn('Failed sharing sheet with service account:', shareErr);
+        }
       }
 
       // 3. Guardar el ID en Backend (Firestore)
       await this.post('/api/tenant/spreadsheet', { spreadsheetId });
       
       // Actualizar el contexto en memoria
-      this._tenant!.spreadsheetId = spreadsheetId;
-      this.authSvc.setNotariaContext(this._tenant!);
+      this._tenant = {
+        ...this._tenant!,
+        spreadsheetId
+      };
+      this.authSvc.setNotariaContext({ ...this._tenant });
       
       console.log('Google Sheet initialized and shared successfully:', spreadsheetId);
-    } catch (e) {
+      return true;
+    } catch (e: any) {
       console.error('Failed to initialize Google Sheet', e);
-      Swal.fire('Atención', 'No se pudo crear la hoja de cálculo automática. Por favor avisa a soporte.', 'warning');
+      Swal.fire('Atención', 'No se pudo crear la hoja de cálculo automática: ' + (e?.message || e), 'warning');
+      return false;
     }
+  }
+
+  /**
+   * Permite al usuario autorizar interactivamente Google Drive si no se creó
+   * la hoja al iniciar sesión.
+   */
+  async linkGoogleDriveAndCreateSheet(): Promise<boolean> {
+    if (!this._tenant) {
+      await this.loadTenant();
+    }
+    if (!this._tenant) return false;
+    if (this._tenant.spreadsheetId) return true;
+
+    const token = await this.authSvc.linkGoogleDrive();
+    if (!token) return false;
+
+    const success = await this.initializeGoogleSheet(this._tenant, token);
+    if (success) {
+      Swal.fire({
+        icon: 'success',
+        title: '¡Hoja de cálculo vinculada!',
+        text: 'Tu hoja de Google Sheets se ha creado en tu Google Drive y está conectada al cotizador.',
+        confirmButtonColor: '#1e40af'
+      });
+    }
+    return success;
   }
 
   // ─── Tarifario ───────────────────────────────────────────────────────────
